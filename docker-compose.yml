@@ -2,6 +2,7 @@ services:
 
   oracle:
     image: container-registry.oracle.com/database/express:21.3.0-xe
+    restart: unless-stopped
     environment:
       ORACLE_PWD: ${ORACLE_PWD:-OraclePass1}
     ports:
@@ -18,8 +19,9 @@ services:
 
   fhir-server:
     build: .
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "18085:8080"
     env_file:
       - .env
     environment:
