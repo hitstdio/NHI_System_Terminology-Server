@@ -1,90 +1,166 @@
 {
-  "resourceType": "CapabilityStatement",
-  "extension" : [{
-    "url" : "http://hl7.org/fhir/uv/application-feature/StructureDefinition/feature",
-    "extension" : [{
-      "url" : "definition",
-      "valueCanonical" : "http://hl7.org/fhir/uv/tx-tests/FeatureDefinition/test-version"
-    },{
-      "url" : "value",
-      "valueCode" : "1.7.7"
-    }]
-  },{
-    "url" : "http://hl7.org/fhir/uv/application-feature/StructureDefinition/feature",
-    "extension" : [{
-      "url" : "definition",
-      "valueCanonical" : "http://hl7.org/fhir/uv/tx-ecosystem/FeatureDefinition/CodeSystemAsParameter"
-    },{
-      "url" : "value"
-    }]
-  }],
-  "url": "http://localhost:8085/metadata",
-  "version": "1.0.0",
-  "name": "RestServer",
-  "title": "RestServer",
-  "status": "active",
-  "date": "2025-07-29T02:38:57.509+08:00",
-  "kind": "instance",
-  "instantiates": [
-    "http://hl7.org/fhir/CapabilityStatement/terminology-server"
-  ],
-  "software": {
-    "name": "HAPI FHIR Server",
-    "version": "7.2.2",
-    "releaseDate": "2025-07-29T02:38:57.509+08:00"
-  },
-  "fhirVersion": "4.0.1",
-  "format": ["application/fhir+json"],
-  "rest": [
-    {
-      "mode": "server",
-      "resource": [
+    "resourceType": "CapabilityStatement",
+    "extension": [
         {
-          "type": "CodeSystem",
-          "profile": "http://hl7.org/fhir/StructureDefinition/CodeSystem",
-          "operation": [
-            {
-              "name": "lookup",
-              "definition": "http://localhost:8085/OperationDefinition/CodeSystem-t-lookup"
-            },
-            {
-              "name": "validate-code",
-              "definition": "http://localhost:8085/OperationDefinition/CodeSystem-it-validate-code"
-            }
-          ]
+            "url": "http://hl7.org/fhir/uv/application-feature/StructureDefinition/feature",
+            "extension": [
+                {
+                    "url": "definition",
+                    "valueCanonical": "http://hl7.org/fhir/uv/tx-tests/FeatureDefinition/test-version"
+                },
+                {
+                    "url": "value",
+                    "valueCode": "1.7.7"
+                }
+            ]
         },
         {
-          "type": "ValueSet",
-          "profile": "http://hl7.org/fhir/StructureDefinition/ValueSet",
-          "interaction": [
-            {
-              "code": "read"
-            },
-            {
-              "code": "search-type"
-            }
-          ],
-          "searchInclude": [
-            "*"
-          ],
-          "operation": [
-            {
-              "name": "expand",
-              "definition": "http://localhost:8085/OperationDefinition/ValueSet-it-expand"
-            },
-            {
-              "name": "validate-code",
-              "definition": "http://localhost:8085/OperationDefinition/CodeSystem-it-validate-code"
-            }
-          ]
-        }      
-      ],
-      "operation": [
-        {
-          "name": "versions",
-          "definition": "http://localhost:8085/OperationDefinition/-s-versions"
+            "url": "http://hl7.org/fhir/uv/application-feature/StructureDefinition/feature",
+            "extension": [
+                {
+                    "url": "definition",
+                    "valueCanonical": "http://hl7.org/fhir/uv/tx-ecosystem/FeatureDefinition/CodeSystemAsParameter"
+                },
+                {
+                    "url": "value",
+                    "valueBoolean": true
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ],
+    "url": "https://ts.caty.hdata.tw/metadata",
+    "version": "1.0.0",
+    "name": "RestServer",
+    "title": "RestServer",
+    "status": "active",
+    "date": "2025-07-29T02:38:57.509+08:00",
+    "kind": "instance",
+    "instantiates": [
+        "http://hl7.org/fhir/CapabilityStatement/terminology-server"
+    ],
+    "software": {
+        "name": "HAPI FHIR Server",
+        "version": "7.2.2",
+        "releaseDate": "2025-07-29T02:38:57.509+08:00"
+    },
+    "implementation": {
+        "description": "FHIR Server running at https://ts.caty.hdata.tw",
+        "url": "https://ts.caty.hdata.tw"
+    },
+    "fhirVersion": "4.0.1",
+    "format": [
+        "application/fhir+json"
+    ],
+    "rest": [
+        {
+            "mode": "server",
+            "resource": [
+                {
+                    "type": "CodeSystem",
+                    "profile": "http://hl7.org/fhir/StructureDefinition/CodeSystem",
+                    "interaction": [
+                        {
+                            "code": "read"
+                        },
+                        {
+                            "code": "search-type"
+                        }
+                    ],
+                    "searchParam": [
+                        {
+                            "name": "url",
+                            "type": "uri"
+                        },
+                        {
+                            "name": "version",
+                            "type": "token"
+                        },
+                        {
+                            "name": "name",
+                            "type": "string"
+                        },
+                        {
+                            "name": "title",
+                            "type": "string"
+                        },
+                        {
+                            "name": "status",
+                            "type": "token"
+                        },
+                        {
+                            "name": "_id",
+                            "type": "token"
+                        }
+                    ],
+                    "operation": [
+                        {
+                            "name": "lookup",
+                            "definition": "https://ts.caty.hdata.tw/OperationDefinition/CodeSystem-t-lookup"
+                        },
+                        {
+                            "name": "validate-code",
+                            "definition": "https://ts.caty.hdata.tw/OperationDefinition/CodeSystemValueSet-it-validate-code"
+                        }
+                    ]
+                },
+                {
+                    "type": "ValueSet",
+                    "profile": "http://hl7.org/fhir/StructureDefinition/ValueSet",
+                    "interaction": [
+                        {
+                            "code": "read"
+                        },
+                        {
+                            "code": "search-type"
+                        }
+                    ],
+                    "searchInclude": [
+                        "*"
+                    ],
+                    "searchParam": [
+                        {
+                            "name": "url",
+                            "type": "uri"
+                        },
+                        {
+                            "name": "version",
+                            "type": "token"
+                        },
+                        {
+                            "name": "name",
+                            "type": "string"
+                        },
+                        {
+                            "name": "title",
+                            "type": "string"
+                        },
+                        {
+                            "name": "status",
+                            "type": "token"
+                        },
+                        {
+                            "name": "_id",
+                            "type": "token"
+                        }
+                    ],
+                    "operation": [
+                        {
+                            "name": "expand",
+                            "definition": "https://ts.caty.hdata.tw/OperationDefinition/ValueSet-it-expand"
+                        },
+                        {
+                            "name": "validate-code",
+                            "definition": "https://ts.caty.hdata.tw/OperationDefinition/CodeSystemValueSet-it-validate-code"
+                        }
+                    ]
+                }
+            ],
+            "operation": [
+                {
+                    "name": "versions",
+                    "definition": "https://ts.caty.hdata.tw/OperationDefinition/-s-versions"
+                }
+            ]
+        }
+    ]
 }
