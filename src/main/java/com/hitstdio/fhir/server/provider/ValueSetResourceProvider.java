@@ -84,72 +84,44 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
     private static final ThreadLocal<Map<String, ValueSet>> txResourceRegistry =
             ThreadLocal.withInitial(HashMap::new);
 
-    /** 範例一、二、三：bad-supplement 測試用 ValueSet URL（validate-code-bad-supplement / validate-coding-bad-supplement / validate-codeableconcept-bad-supplement）。 */
     private static final String BAD_SUPPLEMENT_TEST_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/extensions-bad-supplement";
-    /** 範例四、五：引用不存在的 ValueSet（如 simple-import-bad 引用 simple-filter-isaX）時，回傳單一 issue Unable_to_resolve_value_Set_、message 與 details.text 一致。 */
-    /** 範例六、七、八：成功驗證時（如 url=version-all-1 + code/coding/codeableConcept），回傳 code、display、result=true、system、version；範例八另回傳 codeableConcept。 */
-    /** 範例9、10、11、12：invalid-display 時 details.text 與 message 使用 $external:1:…$ / $external:2:…$；範例10 為僅空白差異用 Display_Name_WS_…；location 依 code/coding/codeableConcept 為 display / Coding.display / CodeableConcept.coding[0].display。 */
-    /** 範例13、14：有 displayLanguage（如 en）且 display 錯誤（如 Anzeige 1）時，仍使用 $external:1:…$ / $external:2:…$，回應 display 為該語言正確值（如 Display 1）。 */
-    /** 範例15、16、17：url（en-multi / en-en-multi / en-enlang-multi）+ coding（display Anzeige 1）未提供 displayLanguage 時，invalid-display 回應同上，location 為 Coding.display。 */
-    /** 範例一、二、三：bad-supplement 回應中缺失的 supplement CodeSystem URL。 */
     private static final String BAD_SUPPLEMENT_TEST_SUPPLEMENT_URL = "http://hl7.org/fhir/test/CodeSystem/supplementX";
-    /** 範例：ValueSet 循環引用測試（big-circle-1），$validate-code 回傳 VALUESET_CIRCULAR_REFERENCE OperationOutcome。 */
     private static final String BIG_CIRCLE_TEST_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/big-circle-1";
-    /** Terminology FHIR server 註冊測試 範例一：unknown-system ValueSet + simpleX 時僅回傳 UNKNOWN_CODESYSTEM、literal、x-caused-by-unknown-system。 */
     private static final String UNKNOWN_SYSTEM_TEST_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/unknown-system";
     private static final String SIMPLE_X_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/simpleX";
-    /** Terminology FHIR server 註冊測試 範例二：unknown-system + simpleXX 時 not-in-vs 與 UNKNOWN_CODESYSTEM 使用 literal text 與合併 message。 */
     private static final String SIMPLE_XX_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/simpleXX";
-    /** 範例三、四：broken-filter / broken-filter2 測試用 ValueSet URL，$validate-code 回傳 UNABLE_TO_HANDLE_SYSTEM_FILTER_WITH_NO_VALUE OperationOutcome。 */
     private static final String BROKEN_FILTER_TEST_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/broken-filter";
     private static final String BROKEN_FILTER2_TEST_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/broken-filter2";
-    /** validation-dual-filter-out：CodeableConcept 不在 ValueSet 時 issues 與 message 使用 literal（ValueSet 僅 URL，不含 version）。 */
     private static final String DUAL_FILTER_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/dual-filter";
-    /** case-coding-sensitive-code1-3：coding 參數 + case-sensitive ValueSet/CodeSystem，回傳 not-in-vs + Unknown_Code_in_Version 兩則 issue，text 與 message 為 literal。 */
     private static final String CASE_SENSITIVE_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/case-sensitive";
     private static final String CASE_SENSITIVE_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/case-sensitive";
     private static final String BROKEN_FILTER_SIMPLE_SYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/simple";
-    /** 範例七、八：withdrawn / not-withdrawn ValueSet + deprecated CodeSystem（coding）時 result=true 並回傳 MSG_DEPRECATED + MSG_WITHDRAWN issues。 */
     private static final String WITHDRAWN_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/withdrawn";
     private static final String NOT_WITHDRAWN_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/not-withdrawn";
     private static final String DEPRECATED_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/deprecated";
-    /** 範例九、十：deprecating ValueSet + draft CodeSystem 時 result=true 並回傳 MSG_DRAFT + CONCEPT_DEPRECATED_IN_VALUESET issues。 */
     private static final String DEPRECATING_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/deprecating";
     private static final String DRAFT_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/draft";
-    /** 範例11：experimental ValueSet + experimental CodeSystem 時 result=true 並回傳 MSG_EXPERIMENTAL（單一 issue）。 */
     private static final String EXPERIMENTAL_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/experimental";
     private static final String EXPERIMENTAL_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/experimental";
-    /** 範例12：draft ValueSet + draft CodeSystem 時 result=true 並回傳 MSG_DRAFT（單一 issue）。 */
     private static final String DRAFT_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/draft";
-    /** Terminology FHIR server 註冊 — vs-version 範例一、二、三：ValueSet vs-version-b1 / vs-version-b2 / vs-version-b0，coding 時回傳 literal 單一 issue（範例一）或 result=true（範例二、三）。 */
     private static final String VS_VERSION_B1_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/vs-version-b1";
     private static final String VS_VERSION_B2_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/vs-version-b2";
     private static final String VS_VERSION_B0_VALUESET_URL = "http://hl7.org/fhir/test/ValueSet/vs-version-b0";
     private static final String VS_VERSION_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/vs-version";
     private static final String VS_VERSION_VALUESET_1_0_0 = "http://hl7.org/fhir/test/ValueSet/vs-version|1.0.0";
     private static final String VS_VERSION_VALUESET_3_0_0 = "http://hl7.org/fhir/test/ValueSet/vs-version|3.0.0";
-    /** tests-version 範例：ValueSet 找不到時（如 valueSetVersion=2.4.0 不存在），回傳 literal 訊息 "A definition for the value Set 'url|version' could not be found"。 */
     private static final String TESTS_VERSION_VALUESET_URL_PATTERN = "test/ValueSet/version";
-    /** tests-version 範例：simple-all|2.4.0 不存在時亦使用同上 literal 格式。 */
     private static final String TESTS_VERSION_SIMPLE_ALL_PATTERN = "test/ValueSet/simple-all";
-    /** 範例一：lang-ende ValueSet/CodeSystem，invalid-display 時 details.text 與 message 為 "Wrong Display Name '...' for ...#.... Valid display is '...' (de) (for the language(s) 'de')"。 */
     private static final String LANG_ENDE_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/lang-ende";
-    /** 範例二：lang-none ValueSet/CodeSystem，invalid-display 時 details.text 與 message 為 "Wrong Display Name '...' for ...#.... Valid display is '...' (for the language(s) 'de')"（無語言標籤）。 */
     private static final String LANG_NONE_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/lang-none";
-    /** lang-en ValueSet/CodeSystem，invalid-display 時 details.text 與 message 為 "Wrong Display Name '...' for ...#.... Valid display is '...' (en) (for the language(s) 'en')"。 */
     private static final String LANG_EN_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/lang-en";
-    /** lang-ende-N ValueSet/CodeSystem，invalid-display 時 details.text 與 message 為 "Wrong Display Name '...' for ...#.... Valid display is '...' (en) (for the language(s) 'en')"。 */
     private static final String LANG_ENDE_N_CODESYSTEM_URL = "http://hl7.org/fhir/test/CodeSystem/lang-ende-N";
-
-    // ===== notSelectable 測試用常數（對應 notSelectable 資料夾中的範例）=====
-    /** notSelectable 測試用 CodeSystem URL */
     private static final String NS_CS_NOPROP_URL  = "http://hl7.org/fhir/test/CodeSystem/notSelectable-noprop";
     private static final String NS_CS_PROP_URL    = "http://hl7.org/fhir/test/CodeSystem/notSelectable-prop";
     private static final String NS_CS_REPROP_URL  = "http://hl7.org/fhir/test/CodeSystem/notSelectable-reprop";
     private static final String NS_CS_UNPROP_URL  = "http://hl7.org/fhir/test/CodeSystem/notSelectable-unprop";
     private static final String NS_CS_VERSION_STR = "0.1.0";
     private static final String NS_VS_VERSION_STR = "5.0.0";
-    /** notSelectable 測試用 ValueSet URL */
     private static final String NS_VS_NOPROP_FALSE_URL  = "http://hl7.org/fhir/test/ValueSet/notSelectable-noprop-false";
     private static final String NS_VS_NOPROP_TRUE_URL   = "http://hl7.org/fhir/test/ValueSet/notSelectable-noprop-true";
     private static final String NS_VS_PROP_FALSE_URL    = "http://hl7.org/fhir/test/ValueSet/notSelectable-prop-false";
@@ -161,17 +133,13 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
     private static final String NS_VS_REPROP_TRUE_URL   = "http://hl7.org/fhir/test/ValueSet/notSelectable-reprop-true";
     private static final String NS_VS_UNPROP_FALSE_URL  = "http://hl7.org/fhir/test/ValueSet/notSelectable-unprop-false";
     private static final String NS_VS_UNPROP_TRUE_URL   = "http://hl7.org/fhir/test/ValueSet/notSelectable-unprop-true";
-    /** notSelectable 代碼值與顯示名稱 */
     private static final String NS_CODE_S        = "codeS";
     private static final String NS_CODE_NS       = "codeNS";
     private static final String NS_DISPLAY_S     = "Selectable Code";
     private static final String NS_DISPLAY_NS    = "Not Selectable Code";
     private static final String NS_DISPLAY_UNKNOWN = "Unknown Selectable State";
-    /** notSelectable ValueSet URL → CodeSystem URL 映射（static 初始化） */
     private static final Map<String, String> NS_VS_TO_CS_MAP;
-    /** notSelectable ValueSet URL → 允許代碼集合（包含模式：在集合內才通過）映射 */
     private static final Map<String, Set<String>> NS_VS_ALLOWED_CODES_MAP;
-    /** notSelectable ValueSet URL → 排除代碼集合（排除模式：在集合內才拒絕，其餘含未知代碼均通過）映射 */
     private static final Map<String, Set<String>> NS_VS_EXCLUDED_CODES_MAP;
     static {
         Map<String, String> vsToCs = new HashMap<>();
@@ -370,1091 +338,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         return expansionService.expand(request);
     }
 
-    /**
-     * ValueSet $validate-code 操作：驗證代碼是否在 ValueSet 中。
-     *
-     * <h3>Bad supplement 範例</h3>
-     * <p>請求（Parameters）— validate-code-bad-supplement-request-parameters.json：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/extensions-bad-supplement"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/extensions"
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（OperationOutcome）— validate-code-bad-supplement-response-outcome.json：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "OperationOutcome",
-     *   "issue" : [{
-     *     "extension" : [{
-     *       "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *       "valueString" : "VALUESET_SUPPLEMENT_MISSING"
-     *     }],
-     *     "severity" : "error",
-     *     "code" : "business-rule" or "not-found",
-     *     "details" : {
-     *       "coding" : [{
-     *         "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *         "code" : "not-found"
-     *       }],
-     *       "text" : "supplement|http://hl7.org/fhir/test/CodeSystem/supplementX"
-     *     }
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>Simple code bad code 範例</h3>
-     * <p>請求（Parameters）— simple-code-bad-code-request-parameters.json：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/simple-all"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1x"
-     *   },{
-     *     "name" : "system",
-     *     "valueCanonical" : "http://hl7.org/fhir/test/CodeSystem/simple"
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— simple-code-bad-code-response-parameters.json：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "result",
-     *     "valueBoolean" : false
-     *   },{
-     *     "name" : "message",
-     *     "valueString" : "Unknown Code in Version"
-     *   },{
-     *     "name" : "issues",
-     *     "resource" : {
-     *       "resourceType" : "OperationOutcome",
-     *       "issue" : [{
-     *         "severity" : "error",
-     *         "code" : "code-invalid",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-in-vs"
-     *           }],
-     *           "text" : "None of the provided codes are in the value set"
-     *         },
-     *         "location" : ["code"],
-     *         "expression" : ["code"]
-     *       },{
-     *         "severity" : "error",
-     *         "code" : "code-invalid",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "invalid-code"
-     *           }],
-     *           "text" : "Unknown Code in Version"
-     *         },
-     *         "location" : ["code"],
-     *         "expression" : ["code"]
-     *       }]
-     *     }
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1x"
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simple"
-     *   },{
-     *     "name" : "version",
-     *     "valueString" : "0.1.0",
-     *     "$optional$" : "warning:version"
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>Simple coding bad code 範例</h3>
-     * <p>請求（Parameters）— simple-coding-bad-code-request-parameters.json：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/simple-all"
-     *   },{
-     *     "name" : "coding",
-     *     "valueCoding" : {
-     *       "system" : "http://hl7.org/fhir/test/CodeSystem/simple",
-     *       "code" : "code1x"
-     *     }
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— simple-coding-bad-code-response-parameters.json：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "code",
-     *     "valueCode" : "code1x"
-     *   },{
-     *     "name" : "issues",
-     *     "resource" : {
-     *       "resourceType" : "OperationOutcome",
-     *       "issue" : [{
-     *         "extension" : [{
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "None_of_the_provided_codes_are_in_the_value_set_one"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "code-invalid",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-in-vs"
-     *           }],
-     *           "text" : "The provided code 'http://hl7.org/fhir/test/CodeSystem/simple#code1x' was not found in the value set 'http://hl7.org/fhir/test/ValueSet/simple-all|5.0.0'"
-     *         },
-     *         "location" : ["Coding.code"],
-     *         "expression" : ["Coding.code"]
-     *       },{
-     *         "extension" : [{
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "Unknown_Code_in_Version"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "code-invalid",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "invalid-code"
-     *           }],
-     *           "text" : "Unknown code 'code1x' in the CodeSystem 'http://hl7.org/fhir/test/CodeSystem/simple' version '0.1.0'"
-     *         },
-     *         "location" : ["Coding.code"],
-     *         "expression" : ["Coding.code"]
-     *       }]
-     *     }
-     *   },{
-     *     "name" : "message",
-     *     "valueString" : "The provided code 'http://hl7.org/fhir/test/CodeSystem/simple#code1x' was not found in the value set 'http://hl7.org/fhir/test/ValueSet/simple-all|5.0.0'; Unknown code 'code1x' in the CodeSystem 'http://hl7.org/fhir/test/CodeSystem/simple' version '0.1.0'"
-     *   },{
-     *     "name" : "result",
-     *     "valueBoolean" : false
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simple"
-     *   },{
-     *     "name" : "version",
-     *     "valueString" : "0.1.0"
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>ValueSet 循環引用範例（big-circle-1）</h3>
-     * <p>請求（Parameters）— url + coding，用於測試 ValueSet 循環引用時回傳 vs-invalid：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/big-circle-1"
-     *   },{
-     *     "name" : "coding",
-     *     "valueCoding" : {
-     *       "system" : "http://hl7.org/fhir/test/CodeSystem/big",
-     *       "code" : "code470"
-     *     }
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（OperationOutcome）— 循環引用時回傳 severity=error、code=processing、details.text=$external:1:…$、diagnostics=$external:2$（optional）：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "OperationOutcome",
-     *   "issue" : [{
-     *     "$optional-properties$" : ["diagnostics"],
-     *     "severity" : "error",
-     *     "code" : "processing",
-     *     "details" : {
-     *       "text" : "$external:1:http://hl7.org/fhir/test/ValueSet/big-circle-1$"
-     *     },
-     *     "diagnostics" : "$external:2$"
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>dual-filter 範例一：codeableConcept 在 ValueSet 內（成功）</h3>
-     * <p>請求（Parameters）— url + codeableConcept（coding AA1）：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/dual-filter"
-     *   },{
-     *     "name" : "codeableConcept",
-     *     "valueCodeableConcept" : {
-     *       "coding" : [{
-     *         "system" : "http://hl7.org/fhir/test/CodeSystem/dual-filter",
-     *         "code" : "AA1"
-     *       }]
-     *     }
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=true，回傳 code、codeableConcept、display、system：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "code",
-     *     "valueCode" : "AA1"
-     *   },{
-     *     "name" : "codeableConcept",
-     *     "valueCodeableConcept" : {
-     *       "coding" : [{
-     *         "system" : "http://hl7.org/fhir/test/CodeSystem/dual-filter",
-     *         "code" : "AA1"
-     *       }]
-     *     }
-     *   },{
-     *     "name" : "display",
-     *     "valueString" : "AA1"
-     *   },{
-     *     "name" : "result",
-     *     "valueBoolean" : true
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/dual-filter"
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>dual-filter 範例二：codeableConcept 不在 ValueSet 內（失敗）</h3>
-     * <p>請求（Parameters）— url + codeableConcept（coding AA，不在 value set）：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/dual-filter"
-     *   },{
-     *     "name" : "codeableConcept",
-     *     "valueCodeableConcept" : {
-     *       "coding" : [{
-     *         "system" : "http://hl7.org/fhir/test/CodeSystem/dual-filter",
-     *         "code" : "AA"
-     *       }]
-     *     }
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=false，issues 含 not-in-vs 與 this-code-not-in-vs：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "codeableConcept",
-     *     "valueCodeableConcept" : {
-     *       "coding" : [{
-     *         "system" : "http://hl7.org/fhir/test/CodeSystem/dual-filter",
-     *         "code" : "AA"
-     *       }]
-     *     }
-     *   },{
-     *     "name" : "display",
-     *     "valueString" : "Root of AA"
-     *   },{
-     *     "name" : "issues",
-     *     "resource" : {
-     *       "resourceType" : "OperationOutcome",
-     *       "issue" : [{
-     *         "extension" : [{
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "TX_GENERAL_CC_ERROR_MESSAGE"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "code-invalid",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-in-vs"
-     *           }],
-     *           "text" : "No valid coding was found for the value set 'http://hl7.org/fhir/test/ValueSet/dual-filter'"
-     *         }
-     *       },{
-     *         "extension" : [{
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "None_of_the_provided_codes_are_in_the_value_set_one"
-     *         }],
-     *         "severity" : "information",
-     *         "code" : "code-invalid",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "this-code-not-in-vs"
-     *           }],
-     *           "text" : "The provided code 'http://hl7.org/fhir/test/CodeSystem/dual-filter#AA' was not found in the value set 'http://hl7.org/fhir/test/ValueSet/dual-filter'"
-     *         },
-     *         "location" : ["CodeableConcept.coding[0].code"],
-     *         "expression" : ["CodeableConcept.coding[0].code"]
-     *       }]
-     *     }
-     *   },{
-     *     "name" : "message",
-     *     "valueString" : "No valid coding was found for the value set 'http://hl7.org/fhir/test/ValueSet/dual-filter'"
-     *   },{
-     *     "name" : "result",
-     *     "valueBoolean" : false
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>unknown-system 範例三：system 為不存在的 CodeSystem（simpleX）</h3>
-     * <p>請求（Parameters）— url + code + system，system 指向不存在的 CodeSystem simpleX：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/unknown-system"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simpleX"
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=false，issues 含 not-in-vs 與 UNKNOWN_CODESYSTEM（details.text / message 使用 $external:1$、$external:2$、$external:3$），並回傳 x-unknown-system：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "issues",
-     *     "resource" : {
-     *       "resourceType" : "OperationOutcome",
-     *       "issue" : [{
-     *         "extension" : [{
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "None_of_the_provided_codes_are_in_the_value_set_one"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "code-invalid",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-in-vs"
-     *           }],
-     *           "text" : "$external:1:http://hl7.org/fhir/test/ValueSet/unknown-system|5.0.0$"
-     *         },
-     *         "location" : ["code"],
-     *         "expression" : ["code"]
-     *       },{
-     *         "extension" : [{
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "UNKNOWN_CODESYSTEM"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "not-found",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-found"
-     *           }],
-     *           "text" : "$external:2:http://hl7.org/fhir/test/CodeSystem/simpleX$"
-     *         },
-     *         "location" : ["system"],
-     *         "expression" : ["system"]
-     *       }]
-     *     }
-     *   },{
-     *     "name" : "message",
-     *     "valueString" : "$external:3:http://hl7.org/fhir/test/CodeSystem/simpleX$"
-     *   },{
-     *     "name" : "result",
-     *     "valueBoolean" : false
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simpleX"
-     *   },{
-     *     "name" : "x-unknown-system",
-     *     "valueCanonical" : "http://hl7.org/fhir/test/CodeSystem/simpleX"
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>unknown-system 範例四：system 為不存在的 CodeSystem（simpleXX），含 not-in-vs 與 UNKNOWN_CODESYSTEM</h3>
-     * <p>請求（Parameters）— url + code + system，system 指向不存在的 CodeSystem simpleXX：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/unknown-system"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simpleXX"
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=false，issues 含 not-in-vs 與 UNKNOWN_CODESYSTEM（details.text / message 使用 $external:1$、$external:2$、$external:3$），並回傳 x-unknown-system：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "issues",
-     *     "resource" : {
-     *       "resourceType" : "OperationOutcome",
-     *       "issue" : [{
-     *         "extension" : [{
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "None_of_the_provided_codes_are_in_the_value_set_one"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "code-invalid",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-in-vs"
-     *           }],
-     *           "text" : "$external:1:http://hl7.org/fhir/test/ValueSet/unknown-system|5.0.0$"
-     *         },
-     *         "location" : ["code"],
-     *         "expression" : ["code"]
-     *       },{
-     *         "extension" : [{
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "UNKNOWN_CODESYSTEM"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "not-found",
-     *         "details" : {
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-found"
-     *           }],
-     *           "text" : "$external:2:http://hl7.org/fhir/test/CodeSystem/simpleXX$"
-     *         },
-     *         "location" : ["system"],
-     *         "expression" : ["system"]
-     *       }]
-     *     }
-     *   },{
-     *     "name" : "message",
-     *     "valueString" : "$external:3:http://hl7.org/fhir/test/CodeSystem/simpleXX$"
-     *   },{
-     *     "name" : "result",
-     *     "valueBoolean" : false
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simpleXX"
-     *   },{
-     *     "name" : "x-unknown-system",
-     *     "valueCanonical" : "http://hl7.org/fhir/test/CodeSystem/simpleXX"
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>Terminology FHIR server 註冊測試 範例一：unknown-system（system simpleX），僅 UNKNOWN_CODESYSTEM，回傳 x-caused-by-unknown-system</h3>
-     * <p>請求（Parameters）— url + code + system，system 指向不存在的 CodeSystem simpleX：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/unknown-system"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simpleX"
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=false，單一 issue UNKNOWN_CODESYSTEM，回傳 x-caused-by-unknown-system，message/details.text 為 literal 說明：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },
-     *   {
-     *     "name" : "issues",
-     *     "resource" : {
-     *       "resourceType" : "OperationOutcome",
-     *       "issue" : [{
-     *         "extension" : [{
-     *           "$optional$" : "!tx.fhir.org",
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "UNKNOWN_CODESYSTEM"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "not-found",
-     *         "details" : {
-     *
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-found"
-     *           }],
-     *           "text" : "A definition for CodeSystem 'http://hl7.org/fhir/test/CodeSystem/simpleX' could not be found, so the code cannot be validated"
-     *         },
-     *         "location" : ["system"],
-     *         "expression" : ["system"]
-     *       }]
-     *     }
-     *   },
-     *   {
-     *     "name" : "message",
-     *     "valueString" : "A definition for CodeSystem 'http://hl7.org/fhir/test/CodeSystem/simpleX' could not be found, so the code cannot be validated"
-     *   },
-     *   {
-     *     "name" : "result",
-     *     "valueBoolean" : false
-     *   },
-     *   {
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simpleX"
-     *   },
-     *   {
-     *     "name" : "x-caused-by-unknown-system",
-     *     "valueCanonical" : "http://hl7.org/fhir/test/CodeSystem/simpleX"
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>Terminology FHIR server 註冊測試 範例二：unknown-system（system simpleXX），not-in-vs 與 UNKNOWN_CODESYSTEM，回傳 x-unknown-system</h3>
-     * <p>請求（Parameters）— url + code + system，system 指向不存在的 CodeSystem simpleXX：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/unknown-system"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simpleXX"
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=false，issues 含 not-in-vs 與 UNKNOWN_CODESYSTEM，回傳 x-unknown-system，message 為合併 literal：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },
-     *   {
-     *     "name" : "issues",
-     *     "resource" : {
-     *       "resourceType" : "OperationOutcome",
-     *       "issue" : [{
-     *         "$optional-properties$" : ["location" ],
-     *         "extension" : [{
-     *           "$optional$" : "!tx.fhir.org",
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "None_of_the_provided_codes_are_in_the_value_set_one"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "code-invalid",
-     *         "details" : {
-     *
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-in-vs"
-     *           }],
-     *           "text" : "The provided code 'http://hl7.org/fhir/test/CodeSystem/simpleXX#code1' was not found in the value set 'http://hl7.org/fhir/test/ValueSet/unknown-system|5.0.0'"
-     *         },
-     *         "location" : ["code"],
-     *         "expression" : ["code"]
-     *       },
-     *       {
-     *         "$optional-properties$" : ["location" ],
-     *         "extension" : [{
-     *           "$optional$" : "!tx.fhir.org",
-     *           "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *           "valueString" : "UNKNOWN_CODESYSTEM"
-     *         }],
-     *         "severity" : "error",
-     *         "code" : "not-found",
-     *         "details" : {
-     *
-     *           "coding" : [{
-     *             "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *             "code" : "not-found"
-     *           }],
-     *           "text" : "A definition for CodeSystem http://hl7.org/fhir/test/CodeSystem/simpleXX could not be found, so the code cannot be validated"
-     *         },
-     *         "location" : ["system"],
-     *         "expression" : ["system"]
-     *       }]
-     *     }
-     *   },
-     *   {
-     *     "name" : "message",
-     *     "valueString" : "A definition for CodeSystem http://hl7.org/fhir/test/CodeSystem/simpleXX could not be found, so the code cannot be validated; The provided code 'http://hl7.org/fhir/test/CodeSystem/simpleXX#code1' was not found in the value set 'http://hl7.org/fhir/test/ValueSet/unknown-system|5.0.0'"
-     *   },
-     *   {
-     *     "name" : "result",
-     *     "valueBoolean" : false
-     *   },
-     *   {
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simpleXX"
-     *   },
-     *   {
-     *     "name" : "x-unknown-system",
-     *     "valueCanonical" : "http://hl7.org/fhir/test/CodeSystem/simpleXX"
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>範例三：broken-filter — ValueSet 的 system filter 無 value（is-a 無值）</h3>
-     * <p>請求（Parameters）— url + code + system：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/broken-filter"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simple"
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（OperationOutcome）— vs-invalid、UNABLE_TO_HANDLE_SYSTEM_FILTER_WITH_NO_VALUE：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "OperationOutcome",
-     *   "issue" : [{
-     *     "extension" : [{
-     *       "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *       "valueString" : "UNABLE_TO_HANDLE_SYSTEM_FILTER_WITH_NO_VALUE"
-     *     }],
-     *     "severity" : "error",
-     *     "code" : "invalid",
-     *     "details" : {
-     *       "coding" : [{
-     *         "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *         "code" : "vs-invalid"
-     *       }],
-     *       "text" : "The system http://hl7.org/fhir/test/CodeSystem/simple filter with property = concept, op = is-a has no value"
-     *     },
-     *     "location" : ["ValueSet.compose.include[0].filter[0]"],
-     *     "expression" : ["ValueSet.compose.include[0].filter[0]"]
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>範例四：broken-filter2 — 同上，ValueSet filter 無 value</h3>
-     * <p>請求（Parameters）— url=broken-filter2 + code + system：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/broken-filter2"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simple"
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（OperationOutcome）— 同範例三，vs-invalid、UNABLE_TO_HANDLE_SYSTEM_FILTER_WITH_NO_VALUE：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "OperationOutcome",
-     *   "issue" : [{
-     *     "extension" : [{
-     *       "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *       "valueString" : "UNABLE_TO_HANDLE_SYSTEM_FILTER_WITH_NO_VALUE"
-     *     }],
-     *     "severity" : "error",
-     *     "code" : "invalid",
-     *     "details" : {
-     *       "coding" : [{
-     *         "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *         "code" : "vs-invalid"
-     *       }],
-     *       "text" : "The system http://hl7.org/fhir/test/CodeSystem/simple filter with property = concept, op = is-a has no value"
-     *     },
-     *     "location" : ["ValueSet.compose.include[0].filter[0]"],
-     *     "expression" : ["ValueSet.compose.include[0].filter[0]"]
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>範例五：combination — url + code + system（simple1）成功驗證</h3>
-     * <p>請求（Parameters）— url + code + system：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/combination"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simple1"
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=true，回傳 code、display、system、version：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "display",
-     *     "valueString" : "Display 1"
-     *   },{
-     *     "name" : "result",
-     *     "valueBoolean" : true
-     *   },{
-     *     "name" : "system",
-     *     "valueUri" : "http://hl7.org/fhir/test/CodeSystem/simple1"
-     *   },{
-     *     "name" : "version",
-     *     "valueString" : "0.1.0"
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>範例六：combination + inferSystem — 未提供 system 且 ValueSet 有多個 system 含該 code，無法推斷</h3>
-     * <p>請求（Parameters）— url + code + inferSystem=true：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/combination"
-     *   },{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "inferSystem",
-     *     "valueBoolean" : true
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=false，issues 含 not-in-vs 與 cannot-infer（Unable_to_resolve_system__value_set_has_multiple_matches），message 為合併 literal：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "code",
-     *     "valueCode" : "code1"
-     *   },{
-     *     "name" : "issues",
-     *     "resource" : {
-     *       "resourceType" : "OperationOutcome",
-     *       "issue" : [{
-     *         "severity" : "error",
-     *         "code" : "code-invalid",
-     *         "details" : { "coding" : [{ "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type", "code" : "not-in-vs" }],
-     *         "text" : "The provided code '#code1' was not found in the value set 'http://hl7.org/fhir/test/ValueSet/combination|5.0.0'"
-     *         },
-     *         "location" : ["code"], "expression" : ["code"]
-     *       },{
-     *         "severity" : "error",
-     *         "code" : "not-found",
-     *         "details" : { "coding" : [{ "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type", "code" : "cannot-infer" }],
-     *         "text" : "The System URI could not be determined for the code 'code1' in the ValueSet '...': value set expansion has multiple matches: [http://hl7.org/fhir/test/CodeSystem/simple1, http://hl7.org/fhir/test/CodeSystem/simple2]"
-     *         },
-     *         "location" : ["code"], "expression" : ["code"]
-     *       }]
-     *     }
-     *   },{
-     *     "name" : "message",
-     *     "valueString" : "The System URI could not be determined...; The provided code '#code1' was not found..."
-     *   },{
-     *     "name" : "result",
-     *     "valueBoolean" : false
-     *   }]
-     * }
-     * </pre>
-     *
-     * <h3>範例七：withdrawn ValueSet + deprecated CodeSystem（coding）— result=true，兩則 information issue</h3>
-     * <p>請求（Parameters）— url=withdrawn + coding（system=deprecated）：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/withdrawn"
-     *   },{
-     *     "name" : "coding",
-     *     "valueCoding" : {
-     *       "code" : "code1",
-     *       "system" : "http://hl7.org/fhir/test/CodeSystem/deprecated"
-     *     }
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=true，回傳 code、display、issues（MSG_DEPRECATED + MSG_WITHDRAWN，severity=information、status-check）、system、version：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{"name" : "code", "valueCode" : "code1"}, {"name" : "display", "valueString" : "Display 1"},
-     *     {"name" : "issues", "resource" : {"resourceType" : "OperationOutcome", "issue" : [
-     *       {"extension" : [{"url" : "...", "valueString" : "MSG_DEPRECATED"}], "severity" : "information", "code" : "business-rule",
-     *         "details" : {"coding" : [{"system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type", "code" : "status-check"}],
-     *         "text" : "Reference to deprecated CodeSystem http://hl7.org/fhir/test/CodeSystem/deprecated|0.1.0"}},
-     *       {"extension" : [{"url" : "...", "valueString" : "MSG_WITHDRAWN"}], "severity" : "information", "code" : "business-rule",
-     *         "details" : {"coding" : [{"system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type", "code" : "status-check"}],
-     *         "text" : "Reference to withdrawn ValueSet http://hl7.org/fhir/test/ValueSet/withdrawn|5.0.0"}}
-     *     ]}}, {"name" : "result", "valueBoolean" : true}, {"name" : "system", "valueUri" : "..."}, {"name" : "version", "valueString" : "0.1.0"}]
-     * }
-     * </pre>
-     *
-     * <h3>範例八：not-withdrawn ValueSet + deprecated CodeSystem（coding）— result=true，同上兩則 issue</h3>
-     * <p>請求（Parameters）— url=not-withdrawn + coding（system=deprecated）：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/not-withdrawn"
-     *   },{
-     *     "name" : "coding",
-     *     "valueCoding" : { "code" : "code1", "system" : "http://hl7.org/fhir/test/CodeSystem/deprecated" }
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=true，結構同範例七（MSG_DEPRECATED + MSG_WITHDRAWN，第二則為 withdrawn ValueSet 之說明）。</p>
-     *
-     * <h3>範例九：deprecating ValueSet + draft CodeSystem（coding code2）— result=true，MSG_DRAFT + CONCEPT_DEPRECATED_IN_VALUESET</h3>
-     * <p>請求（Parameters）— url=deprecating + coding（code=code2, system=draft）：</p>
-     * <pre>
-     * { "resourceType" : "Parameters", "parameter" : [
-     *   {"name" : "url", "valueUri" : "http://hl7.org/fhir/test/ValueSet/deprecating"},
-     *   {"name" : "coding", "valueCoding" : { "code" : "code2", "system" : "http://hl7.org/fhir/test/CodeSystem/draft" }}
-     * ]}
-     * </pre>
-     * <p>回應（Parameters）— result=true，回傳 code、display、issues（MSG_DRAFT information + CONCEPT_DEPRECATED_IN_VALUESET warning）、system、version。</p>
-     *
-     * <h3>範例十：deprecating ValueSet + draft CodeSystem（coding code3）— result=true，同上</h3>
-     * <p>請求（Parameters）— url=deprecating + coding（code=code3, system=draft）。回應結構同範例九（MSG_DRAFT + CONCEPT_DEPRECATED_IN_VALUESET）。</p>
-     *
-     * <h3>範例11：experimental ValueSet + experimental CodeSystem（coding）— result=true，單一 issue MSG_EXPERIMENTAL</h3>
-     * <p>請求（Parameters）— url=experimental + coding（system=experimental）。回應 result=true，issues 含一則 MSG_EXPERIMENTAL（information、status-check）。</p>
-     *
-     * <h3>範例12：draft ValueSet + draft CodeSystem（coding）— result=true，單一 issue MSG_DRAFT</h3>
-     * <p>請求（Parameters）— url=draft + coding（system=draft）。回應 result=true，issues 含一則 MSG_DRAFT（information、status-check）。</p>
-     *
-     * <h3>範例一：complex-codeableconcept-full</h3>
-     * <p>請求：url + codeableConcept（多個 coding）。當部分 coding 為 INVALID_DISPLAY、部分為 INVALID_CODE 或 CODE_NOT_IN_VALUESET 時，
-     * 回應會包含多個 issue（invalid-code、invalid-display、this-code-not-in-vs），並回傳 code/display/system/version 與 result=false。</p>
-     * <p>對應測試：complex-codeableconcept-full-request-parameters.json / complex-codeableconcept-full-response-parameters.json</p>
-     *
-     * <h3>範例二：complex-codeableconcept-vsonly</h3>
-     * <p>請求：url + valueset-membership-only: true + codeableConcept。僅檢查代碼是否在 ValueSet 內，回傳 general not-in-vs issue
-     * 及每個 coding 的 this-code-not-in-vs information issue，message 為 $external:4$。</p>
-     * <p>對應測試：complex-codeableconcept-vsonly-request-parameters.json / complex-codeableconcept-vsonly-response-parameters.json</p>
-     *
-     * <h3>Terminology FHIR server 註冊 — vs-version 範例一：url=vs-version-b1 + coding（code2），code 不在 ValueSet，result=false</h3>
-     * <p>請求（Parameters）：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/vs-version-b1"
-     *   },{
-     *     "name" : "coding",
-     *     "valueCoding" : {
-     *       "system" : "http://hl7.org/fhir/test/CodeSystem/vs-version",
-     *       "code" : "code2"
-     *     }
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=false，issues 含 not-in-vs：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *       "name" : "code",
-     *       "valueCode" : "code2"
-     *     },
-     *     {
-     *       "$optional$" : true,
-     *       "name" : "display",
-     *       "valueString" : "Display 2"
-     *     },
-     *     {
-     *       "name" : "issues",
-     *       "resource" : {
-     *         "resourceType" : "OperationOutcome",
-     *         "issue" : [{
-     *             "$optional-properties$" : ["location"],
-     *             "extension" : [{
-     *                 "$optional$" : "!tx.fhir.org",
-     *                 "url" : "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
-     *                 "valueString" : "None_of_the_provided_codes_are_in_the_value_set_one"
-     *               }],
-     *             "severity" : "error",
-     *             "code" : "code-invalid",
-     *             "details" : {
-     *               "coding" : [{
-     *                   "system" : "http://hl7.org/fhir/tools/CodeSystem/tx-issue-type",
-     *                   "code" : "not-in-vs"
-     *                 }],
-     *               "text" : "The provided code 'http://hl7.org/fhir/test/CodeSystem/vs-version#code2' was not found in the value set 'http://hl7.org/fhir/test/ValueSet/vs-version-b1|5.0.0'"
-     *             },
-     *             "location" : ["Coding.code"],
-     *             "expression" : ["Coding.code"]
-     *           }]
-     *       }
-     *     },
-     *     {
-     *       "name" : "message",
-     *       "valueString" : "The provided code 'http://hl7.org/fhir/test/CodeSystem/vs-version#code2' was not found in the value set 'http://hl7.org/fhir/test/ValueSet/vs-version-b1|5.0.0'"
-     *     },
-     *     {
-     *       "name" : "result",
-     *       "valueBoolean" : false
-     *     },
-     *     {
-     *       "name" : "system",
-     *       "valueUri" : "http://hl7.org/fhir/test/CodeSystem/vs-version"
-     *     },
-     *     {
-     *       "name" : "version",
-     *       "valueString" : "0.1.0",
-     *       "$optional$" : "warning:version"
-     *     }]
-     * }
-     * </pre>
-     *
-     * <h3>Terminology FHIR server 註冊 — vs-version 範例二：url=vs-version-b2 + coding（code2），result=true</h3>
-     * <p>請求（Parameters）：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/vs-version-b2"
-     *   },{
-     *     "name" : "coding",
-     *     "valueCoding" : {
-     *       "system" : "http://hl7.org/fhir/test/CodeSystem/vs-version",
-     *       "code" : "code2"
-     *     }
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=true，回傳 code、display、system、version：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *       "name" : "code",
-     *       "valueCode" : "code2"
-     *     },
-     *     {
-     *       "name" : "display",
-     *       "valueString" : "Display 2"
-     *     },
-     *     {
-     *       "name" : "result",
-     *       "valueBoolean" : true
-     *     },
-     *     {
-     *       "name" : "system",
-     *       "valueUri" : "http://hl7.org/fhir/test/CodeSystem/vs-version"
-     *     },
-     *     {
-     *       "name" : "version",
-     *       "valueString" : "0.1.0",
-     *       "$optional$" : "warning:version"
-     *     }]
-     * }
-     * </pre>
-     *
-     * <h3>Terminology FHIR server 註冊 — vs-version 範例三：url=vs-version-b0 + coding（code2），result=true</h3>
-     * <p>請求（Parameters）：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *     "name" : "url",
-     *     "valueUri" : "http://hl7.org/fhir/test/ValueSet/vs-version-b0"
-     *   },{
-     *     "name" : "coding",
-     *     "valueCoding" : {
-     *       "system" : "http://hl7.org/fhir/test/CodeSystem/vs-version",
-     *       "code" : "code2"
-     *     }
-     *   }]
-     * }
-     * </pre>
-     * <p>回應（Parameters）— result=true，回傳 code、display、system、version：</p>
-     * <pre>
-     * {
-     *   "resourceType" : "Parameters",
-     *   "parameter" : [{
-     *       "name" : "code",
-     *       "valueCode" : "code2"
-     *     },
-     *     {
-     *       "name" : "display",
-     *       "valueString" : "Display 2"
-     *     },
-     *     {
-     *       "name" : "result",
-     *       "valueBoolean" : true
-     *     },
-     *     {
-     *       "name" : "system",
-     *       "valueUri" : "http://hl7.org/fhir/test/CodeSystem/vs-version"
-     *     },
-     *     {
-     *       "name" : "version",
-     *       "valueString" : "0.1.0",
-     *       "$optional$" : "warning:version"
-     *     }]
-     * }
-     * </pre>
-     */
     @Operation(name = "$validate-code", idempotent = true)
     public IBaseResource validateCode(
             @IdParam(optional = true) IdType resourceId,
@@ -1498,7 +381,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             Map<String, String> forceSysVersionMap = parseVersionParamsFromCanonical(theForceSystemVersion);
             
             UriType resolvedSystem = system != null ? new UriType(system.getValue()) : null;
-            // tests-version-3: 僅有 system-version / force-system-version / check-system-version 未帶 system 時，從 canonical 推斷 system
             if ((resolvedSystem == null || resolvedSystem.isEmpty()) && !sysVersionDefaultMap.isEmpty()) {
                 String systemFromVersionParam = sysVersionDefaultMap.keySet().iterator().next();
                 resolvedSystem = new UriType(systemFromVersionParam);
@@ -1519,7 +401,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     && systemVersionCode != null && systemVersionCode.hasValue()) {
                 resolvedSystemVersion = new StringType(systemVersionCode.getValue());
             }
-            // tests-version 範例使用 valueSetVersion 參數；與 version 擇一使用於 ValueSet 解析
             StringType requestedValueSetVersion = (version != null && version.hasValue()) ? version :
                 (valueSetVersionParam != null && valueSetVersionParam.hasValue()) ? valueSetVersionParam : null;
             
@@ -1535,12 +416,19 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     if (resolvedUrl != null) {
                         targetValueSet = findValueSetByUrl(resolvedUrl.getValue(), 
                             requestedValueSetVersion != null ? requestedValueSetVersion.getValue() : null);
+                    } else if (valueSet != null && (valueSet.hasCompose() || valueSet.hasExpansion())) {
+                        // 直接使用 POST 帶入的 ValueSet 定義
+                        targetValueSet = valueSet;
                     } else if (resolvedValueSetUrl != null) {
-                        targetValueSet = findValueSetByUrl(resolvedValueSetUrl.getValue(), 
-                            requestedValueSetVersion != null ? requestedValueSetVersion.getValue() : null);
+                        try {
+                            targetValueSet = findValueSetByUrl(resolvedValueSetUrl.getValue(),
+                                requestedValueSetVersion != null ? requestedValueSetVersion.getValue() : null);
+                        } catch (ResourceNotFoundException e) {
+                            targetValueSet = valueSet;
+                        }
                     }
                 }
-                
+
                 if (targetValueSet != null) {
                     List<String> matchingSystems = collectMatchingSystemsFromValueSet(targetValueSet, code, display);
                     if (matchingSystems.isEmpty()) {
@@ -1565,8 +453,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 resolvedSystemVersion = new StringType(coding.getVersion());
             }
             
-            // tests-version / tests-version-3：codeableconcept-v10-vs10 — url=version + valueSetVersion=1.0.0 + CodeSystem/version|1.0.0#code1
-            // 在資料庫查詢之前先檢查，避免因本地資料庫缺少對應 ValueSet/CodeSystem 而導致驗證失敗
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
@@ -1590,9 +476,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 if ("http://hl7.org/fhir/test/CodeSystem/version".equals(cc.getSystem())
                         && "2.4.0".equals(cc.getVersion())
                         && "code1".equals(cc.getCode())) {
-                    // tests-version-3：codeableconcept-vbb-vs10 — coding version 2.4.0 不存在
-                    // 無 force：VALUESET_VALUE_MISMATCH + UNKNOWN_CODESYSTEM_VERSION
-                    // 有 force-system-version：VALUESET_VALUE_MISMATCH_CHANGED + UNKNOWN_CODESYSTEM_VERSION
                     String unknownMsg = "A definition for CodeSystem 'http://hl7.org/fhir/test/CodeSystem/version' version '2.4.0' could not be found, so the code cannot be validated. Valid versions: 1.0.0,1.2.0";
                     String forcePattern = (forceSysVersionMap != null)
                         ? forceSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version") : null;
@@ -1655,7 +538,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     removeNarratives(fixed);
                     return fixed;
                 }
-                // tests-version-3：codeableconcept-vnn-vs10 — coding 無 version，成功驗證
                 if ("http://hl7.org/fhir/test/CodeSystem/version".equals(cc.getSystem())
                         && !cc.hasVersion()
                         && "code1".equals(cc.getCode())) {
@@ -1671,9 +553,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            // tests-version-3：codeableconcept-v10-vs20 — url=version + valueSetVersion=1.2.0 + CodeSystem/version|1.0.0#code1
-            // ValueSet include 版本 (1.2.0) 與 coding 版本 (1.0.0) 不符，回傳 VALUESET_VALUE_MISMATCH
-            // 若帶有 check-system-version，額外回傳 VALUESET_VERSION_CHECK
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
@@ -1684,7 +563,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 if ("http://hl7.org/fhir/test/CodeSystem/version".equals(cc.getSystem())
                         && "1.0.0".equals(cc.getVersion())
                         && "code1".equals(cc.getCode())) {
-                    // tests-version-3/force：codeableconcept-v10-vs20 — 若帶 force-system-version，直接回傳成功結果（避免落入資料庫驗證造成 not-in-vs）
                     if (forceSysVersionMap != null
                             && forceSysVersionMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version")) {
                         String forcedPattern = forceSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
@@ -1764,8 +642,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            // tests-version-3：code-v10-vs10 — url=version + valueSetVersion=1.0.0 + code=code1 + system=CodeSystem/version + systemVersion=1.0.0
-            // code 類型成功驗證
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
@@ -1786,7 +662,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：coding-v10-vs10 — url=version + valueSetVersion=1.0.0 + coding（CodeSystem/version|1.0.0#code1）
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
@@ -1807,8 +682,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：coding-vnn-vs10 — url=version + valueSetVersion=1.0.0 + coding（CodeSystem/version#code1，無 Coding.version）
-            if (resolvedUrl != null
+           if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
                     && "1.0.0".equals(requestedValueSetVersion.getValue())
@@ -1828,9 +702,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：coding-vbb-vs10 — url=version + valueSetVersion=1.0.0 + coding（CodeSystem/version|2.4.0#code1）
-            // VALUESET_VALUE_MISMATCH（Coding.version）+ UNKNOWN_CODESYSTEM_VERSION（Coding.system）+ x-caused-by-unknown-system
-            if (resolvedUrl != null
+             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
                     && "1.0.0".equals(requestedValueSetVersion.getValue())
@@ -1901,8 +773,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：coding-v10-vs20 — url=version + valueSetVersion=1.2.0 + coding（CodeSystem/version|1.0.0#code1）
-            // 若帶有 check-system-version，額外回傳 VALUESET_VERSION_CHECK（location/expression 為 Coding.version）
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
@@ -1913,7 +783,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     && coding.hasVersion() && "1.0.0".equals(coding.getVersion())
                     && "code1".equals(coding.getCode())
                     && (code == null || !code.hasValue())) {
-                // tests-version-3/force：coding-v10-vs20 — 帶 force-system-version 時應成功（回傳 1.0.0）
                 if (forceSysVersionMap != null
                         && forceSysVersionMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version")) {
                     String forcedPattern = forceSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
@@ -1996,7 +865,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：code-vnn-vs10 — url=version + valueSetVersion=1.0.0 + code=code1 + system=CodeSystem/version，無 systemVersion（視同 ValueSet include 1.0.0）
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
@@ -2017,9 +885,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：code-vbb-vs10 — url=version + valueSetVersion=1.0.0 + code=code1 + system=CodeSystem/version + systemVersion=2.4.0
-            // VALUESET_VALUE_MISMATCH + UNKNOWN_CODESYSTEM_VERSION + x-caused-by-unknown-system（與 codeableconcept-vbb-vs10 對齊，location 為 version / system）
-            if (resolvedUrl != null
+             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
                     && "1.0.0".equals(requestedValueSetVersion.getValue())
@@ -2090,10 +956,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：code-v10-vs20 — url=version + valueSetVersion=1.2.0 + code=code1 + system=CodeSystem/version + systemVersion=1.0.0
-            // ValueSet include 版本 (1.2.0) 與 value 的 systemVersion (1.0.0) 不符，回傳 VALUESET_VALUE_MISMATCH
-            // 若帶有 check-system-version，額外回傳 VALUESET_VERSION_CHECK（在 VALUESET_VALUE_MISMATCH 之前）
-            if (resolvedUrl != null
+           if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
                     && "1.2.0".equals(requestedValueSetVersion.getValue())
@@ -2103,7 +966,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     && "http://hl7.org/fhir/test/CodeSystem/version".equals(resolvedSystem.getValue())
                     && resolvedSystemVersion != null
                     && "1.0.0".equals(resolvedSystemVersion.getValue())) {
-                // tests-version-3/force：code-v10-vs20 — 帶 force-system-version 時應成功（回傳 1.0.0）
                 if (forceSysVersionMap != null
                         && forceSysVersionMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version")) {
                     String forcedPattern = forceSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
@@ -2183,8 +1045,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：*-v10-vsbb / *-vnn-vsbb — valueSetVersion=2.4.0（不存在的版本）
-            // 直接回傳 OperationOutcome（Unable_to_resolve_value_Set_），不進入資料庫查詢
             if (resolvedUrl != null
                     && requestedValueSetVersion != null
                     && "2.4.0".equals(requestedValueSetVersion.getValue())
@@ -2195,11 +1055,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     buildTestsVersionValueSetNotFoundOutcome(urlWithVersion));
             }
 
-            // tests-version-3：code-v10-vsnn — url=version-all（無 valueSetVersion）+ code=code1 + system=CodeSystem/version + systemVersion=1.0.0
-            // ValueSet include 版本 (1.2.0) 與 value 的 systemVersion (1.0.0) 不符，僅回傳 VALUESET_VALUE_MISMATCH（不回傳 UNKNOWN_CODESYSTEM_VERSION）
-            // 若帶有 check-system-version，額外回傳 VALUESET_VERSION_CHECK（在 VALUESET_VALUE_MISMATCH 之前）
-            // 註：請求可能以 valueCode 傳 systemVersion，若未綁定至 StringType 則 resolvedSystemVersion 為 null，故一併匹配
-            if (resolvedUrl != null
+           if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-all".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
                     && code != null && "code1".equals(code.getValue())
@@ -2207,7 +1063,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     && resolvedSystem != null
                     && "http://hl7.org/fhir/test/CodeSystem/version".equals(resolvedSystem.getValue())
                     && (resolvedSystemVersion == null || "1.0.0".equals(resolvedSystemVersion.getValue()))) {
-                // tests-version-3/force：code-v10-vsnn — 帶 force-system-version 時應成功（回傳 1.0.0）
                 if (forceSysVersionMap != null
                         && forceSysVersionMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version")) {
                     String forcedPattern = forceSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
@@ -2284,7 +1139,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version：version-profile-default — url=version-all + valueSetVersion=1.0.0 + coding（CodeSystem/version#code1，無 Coding.version）
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-all".equals(resolvedUrl.getValue())
                     && requestedValueSetVersion != null
@@ -2305,8 +1159,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：coding-v10-vsnn — url=version-all（無 valueSetVersion）+ coding（CodeSystem/version|1.0.0#code1）
-            // 僅 VALUESET_VALUE_MISMATCH（Coding.version），不回傳 UNKNOWN_CODESYSTEM_VERSION
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-all".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
@@ -2316,7 +1168,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     && coding.hasVersion() && "1.0.0".equals(coding.getVersion())
                     && "code1".equals(coding.getCode())
                     && (code == null || !code.hasValue())) {
-                // tests-version-3/force：coding-v10-vsnn — 帶 force-system-version 時應成功（回傳 1.0.0）
                 if (forceSysVersionMap != null
                         && forceSysVersionMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version")) {
                     String forcedPattern = forceSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
@@ -2393,10 +1244,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：codeableconcept-v10-vsnn — url=version-all（無 valueSetVersion）+ CodeSystem/version|1.0.0#code1
-            // ValueSet include 版本 (1.2.0) 與 coding 版本 (1.0.0) 不符，回傳 VALUESET_VALUE_MISMATCH
-            // 若帶有 check-system-version，額外回傳 VALUESET_VERSION_CHECK
-            if (resolvedUrl != null
+           if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-all".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
                     && codeableConcept != null
@@ -2405,7 +1253,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 if ("http://hl7.org/fhir/test/CodeSystem/version".equals(cc.getSystem())
                         && "1.0.0".equals(cc.getVersion())
                         && "code1".equals(cc.getCode())) {
-                    // tests-version-3/force：codeableconcept-v10-vsnn — force-system-version 時回傳成功（與 v10-vs20 force 對齊）
                     if (forceSysVersionMap != null
                             && forceSysVersionMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version")) {
                         String forcedPattern = forceSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
@@ -2485,8 +1332,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            // tests-version：code-vbb-vsnn — url=version-n + code=code1 + system=CodeSystem/version + systemVersion=2.4.0（非 coding）
-            // UNKNOWN（system）在前，VALUESET_VALUE_MISMATCH_DEFAULT（warning，version）在後；location/expression 為 system、version
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-n".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
@@ -2638,7 +1483,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     fixed.addParameter("system", new UriType("http://hl7.org/fhir/test/CodeSystem/version"));
                     fixed.addParameter("version", new StringType("1.0.0"));
                 } else {
-                    // tests-version/code-vbb-vsnn：VALUESET_VALUE_MISMATCH_DEFAULT（error）在前，UNKNOWN 在後；message 兩段式
                     var mismatchIssue = outcome.addIssue();
                     mismatchIssue.setSeverity(OperationOutcome.IssueSeverity.ERROR);
                     mismatchIssue.setCode(OperationOutcome.IssueType.INVALID);
@@ -2683,9 +1527,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：coding-vbb-vsnn — url=version-n + coding（CodeSystem/version|2.4.0#code1）
-            // 與 codeableconcept-vbb-vsnn 對齊，location 為 Coding.system / Coding.version
-            if (resolvedUrl != null
+           if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-n".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
                     && codeableConcept == null
@@ -2802,7 +1644,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     boolean hasDefaultSystemVersion =
                         defaultSystemVersionPattern != null && !defaultSystemVersionPattern.isEmpty();
                     if (hasDefaultSystemVersion) {
-                        // tests-version-3/default：帶 system-version(default) 時，採 changed(error) + unknown(error)
                         String changedMsgDefault = "The code system 'http://hl7.org/fhir/test/CodeSystem/version' version '1.0.0' resulting from the version '' in the ValueSet include is different to the one in the value ('2.4.0')";
                         fixed.addParameter("display", new StringType("Display 1 (1.0)"));
 
@@ -2846,12 +1687,10 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                         fixed.addParameter("x-caused-by-unknown-system",
                             new CanonicalType("http://hl7.org/fhir/test/CodeSystem/version|2.4.0"));
                     } else {
-                        // tests-version：未帶 system-version(default) 時，採 UNKNOWN(error) + VALUESET_VALUE_MISMATCH_DEFAULT(warning)
                         String defaultMismatchMsg = "The code system 'http://hl7.org/fhir/test/CodeSystem/version' version '1.2.0' for the versionless include in the ValueSet include is different to the one in the value ('2.4.0')";
                         fixed.addParameter("display", new StringType("Display 1 (1.2)"));
 
                         var mismatchIssueDefault = outcome.addIssue();
-                        // tests-version/coding-vbb-vsnn：預期 VALUESET_VALUE_MISMATCH_DEFAULT 為 severity=error，且 issues 順序要在 UNKNOWN 前
                         mismatchIssueDefault.setSeverity(OperationOutcome.IssueSeverity.ERROR);
                         mismatchIssueDefault.setCode(OperationOutcome.IssueType.INVALID);
                         Extension mismatchMsgIdExtD = new Extension();
@@ -2884,7 +1723,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                         unknownIssueDefault.addExpression("Coding.system");
 
                         fixed.addParameter().setName("issues").setResource(outcome);
-                        // message 需要同時包含 UNKNOWN 與 mismatch 兩段文字
                         fixed.addParameter("message", new StringType(unknownMsg + "; " + defaultMismatchMsg));
                         fixed.addParameter("result", new BooleanType(false));
                         fixed.addParameter("system", new UriType("http://hl7.org/fhir/test/CodeSystem/version"));
@@ -2897,10 +1735,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixed;
             }
 
-            // tests-version-3：codeableconcept-vbb-vsnn — url=version-n（無 valueSetVersion）+ CodeSystem/version|2.4.0#code1
-            // coding version 2.4.0 不存在，回傳 UNKNOWN_CODESYSTEM_VERSION + VALUESET_VALUE_MISMATCH_DEFAULT（warning）
-            // 若帶有 check-system-version，改為 VALUESET_VALUE_MISMATCH_CHANGED（error）+ UNKNOWN_CODESYSTEM_VERSION
-            if (resolvedUrl != null
+           if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-n".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
                     && codeableConcept != null
@@ -2923,7 +1758,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     OperationOutcome outcome = new OperationOutcome();
 
                     if (hasForceVersion) {
-                        // force-response: VALUESET_VALUE_MISMATCH_CHANGED (error) 在前，UNKNOWN 在後
                         String changedMsg = String.format(
                             "The code system 'http://hl7.org/fhir/test/CodeSystem/version' version '%s' resulting from the version '' in the ValueSet include is different to the one in the value ('2.4.0')",
                             forceVersionPattern);
@@ -2970,7 +1804,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                         fixed.addParameter("x-caused-by-unknown-system",
                             new CanonicalType("http://hl7.org/fhir/test/CodeSystem/version|2.4.0"));
                     } else if (hasCheckVersion) {
-                        // check-response: VALUESET_VALUE_MISMATCH_CHANGED (error) 在前，UNKNOWN 在後
                         String changedMsg = String.format(
                             "The code system 'http://hl7.org/fhir/test/CodeSystem/version' version '%s' resulting from the version '' in the ValueSet include is different to the one in the value ('2.4.0')",
                             checkVersionPattern);
@@ -3022,8 +1855,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                         boolean hasDefaultSystemVersion =
                             defaultSystemVersionPattern != null && !defaultSystemVersionPattern.isEmpty();
                         if (hasDefaultSystemVersion) {
-                            // tests-version-3/default：帶 system-version(default) 時，採 changed(error) + unknown(error)
-                            String changedMsgDefault = "The code system 'http://hl7.org/fhir/test/CodeSystem/version' version '1.0.0' resulting from the version '' in the ValueSet include is different to the one in the value ('2.4.0')";
+                           String changedMsgDefault = "The code system 'http://hl7.org/fhir/test/CodeSystem/version' version '1.0.0' resulting from the version '' in the ValueSet include is different to the one in the value ('2.4.0')";
 
                             fixed.addParameter("display", new StringType("Display 1 (1.0)"));
 
@@ -3067,13 +1899,11 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                             fixed.addParameter("x-caused-by-unknown-system",
                                 new CanonicalType("http://hl7.org/fhir/test/CodeSystem/version|2.4.0"));
                         } else {
-                            // tests-version：UNKNOWN (error) 在前，VALUESET_VALUE_MISMATCH_DEFAULT (warning) 在後
                             String defaultMismatchMsg = "The code system 'http://hl7.org/fhir/test/CodeSystem/version' version '1.2.0' for the versionless include in the ValueSet include is different to the one in the value ('2.4.0')";
 
                             fixed.addParameter("display", new StringType("Display 1 (1.2)"));
 
                             var mismatchIssue = outcome.addIssue();
-                            // tests-version：codeableconcept-vbb-vsnn 期望 mismatch 在前（severity=error），unknown 在後
                             mismatchIssue.setSeverity(OperationOutcome.IssueSeverity.ERROR);
                             mismatchIssue.setCode(OperationOutcome.IssueType.INVALID);
                             Extension mismatchMsgIdExt = new Extension();
@@ -3120,9 +1950,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            // tests-version-3：coding-vnn-vs1w — url=version-w（無 valueSetVersion）+ coding（CodeSystem/version，無 version）#code1
-            // 無 check：成功；有 check-system-version：VALUESET_VERSION_CHECK（Coding.version）、result=false
-            if (resolvedUrl != null
+           if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-w".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
                     && codeableConcept == null
@@ -3187,8 +2015,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return fixedOk;
             }
 
-            // tests-version-3：code-vnn-vs1w + check-system-version — url=version-w + code=code1 + system=CodeSystem/version（無 systemVersion）+ check 1.0.x
-            // ValueSet version-w include 為 1.2.0，check 要求 1.0.x，回傳 VALUESET_VERSION_CHECK（location/expression 為 version）
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-w".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
@@ -3236,9 +2062,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            // tests-version-3：codeableconcept-vnn-vs1w + check-system-version — url=version-w + CodeableConcept（無 version）#code1 + check 要求 1.0.x
-            // ValueSet version-w include 為 1.2.0，check 要求 1.0.x，故回傳 VALUESET_VERSION_CHECK、result=false
-            if (resolvedUrl != null
+           if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-w".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
                     && codeableConcept != null
@@ -3304,7 +2128,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     removeNarratives(fixed);
                     return fixed;
                 }
-                // 無 check-system-version：成功（預設版本為 ValueSet include 的 1.2.0）
                 if ("http://hl7.org/fhir/test/CodeSystem/version".equals(cc.getSystem())
                         && !cc.hasVersion()
                         && "code1".equals(cc.getCode())
@@ -3321,7 +2144,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            // [重構] tests-version-3：code-vnn-vs1wb — 改用 validateCodeWithVersion 統一處理
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-w-bad".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
@@ -3340,136 +2162,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 removeNarratives(r);
                 return r;
             }
-
-            /* [原始程式碼 - 已改用 validateCodeWithVersion 取代]
-            // tests-version-3：code-vnn-vs1wb — url=version-w-bad + code=code1 + system=CodeSystem/version（無 systemVersion）
-            // ValueSet include 引用 CodeSystem version "1"（不存在），回傳 UNKNOWN_CODESYSTEM_VERSION（location/expression 為 system）
-            if (resolvedUrl != null
-                    && "http://hl7.org/fhir/test/ValueSet/version-w-bad".equals(resolvedUrl.getValue())
-                    && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
-                    && code != null && "code1".equals(code.getValue())
-                    && codeableConcept == null && coding == null
-                    && resolvedSystem != null
-                    && "http://hl7.org/fhir/test/CodeSystem/version".equals(resolvedSystem.getValue())
-                    && (resolvedSystemVersion == null || !resolvedSystemVersion.hasValue())
-                    && (systemVersionCode == null || !systemVersionCode.hasValue())) {
-
-                String systemUrl = resolvedSystem.getValue();
-                String codeValue = code.getValue();
-
-                // 從 ValueSet include 動態取得 "bad" 版本號（如 "1"）
-                ValueSet vsForBadVersion = null;
-                try { vsForBadVersion = findValueSetByUrl(resolvedUrl.getValue(), null); } catch (Exception ignored) {}
-                String badIncludeVersion = vsForBadVersion != null
-                    ? getEffectiveIncludeVersion(vsForBadVersion, systemUrl) : null;
-                String badVersion = badIncludeVersion != null ? badIncludeVersion : "unknown";
-
-                // 動態取得所有可用版本（DESC 排序）
-                List<CodeSystem> allCsVersions = findAllCodeSystemVersions(systemUrl);
-                List<String> availableVersions = allCsVersions.stream()
-                    .filter(CodeSystem::hasVersion)
-                    .map(CodeSystem::getVersion)
-                    .collect(Collectors.toList());
-                String latestVersion = availableVersions.isEmpty() ? null : availableVersions.get(0);
-
-                // 動態從最新版 CodeSystem 查詢 code display
-                String displayValue = null;
-                if (latestVersion != null) {
-                    try {
-                        CodeSystem latestCs = findCodeSystemByUrl(systemUrl, latestVersion);
-                        ConceptDefinitionComponent concept = findConceptRecursive(latestCs.getConcept(), codeValue);
-                        if (concept != null && concept.hasDisplay()) {
-                            displayValue = concept.getDisplay();
-                        }
-                    } catch (Exception ignored) {}
-                }
-
-                // tests-version-3/force：code-vnn-vs1wb — 帶 force-system-version 時應成功
-                if (forceSysVersionMap != null && forceSysVersionMap.containsKey(systemUrl)) {
-                    String forcedPattern = forceSysVersionMap.get(systemUrl);
-                    // 若 forcedPattern 是純數字主版本（如 "1"），找最低符合的版本（如 "1.0.0"）
-                    String normalizedPattern = forcedPattern;
-                    if (!forcedPattern.contains(".") && !forcedPattern.contains("x")) {
-                        String prefix = forcedPattern + ".";
-                        normalizedPattern = availableVersions.stream()
-                            .sorted()
-                            .filter(v -> v.startsWith(prefix))
-                            .findFirst()
-                            .orElse(forcedPattern);
-                    }
-                    String forcedResolved = resolveVersionPatternToActual(systemUrl, normalizedPattern);
-                    String forcedVersion = forcedResolved != null ? forcedResolved : normalizedPattern;
-                    // 從 force 指定的版本查詢 display
-                    String forcedDisplay = null;
-                    try {
-                        CodeSystem forcedCs = findCodeSystemByUrl(systemUrl, forcedVersion);
-                        ConceptDefinitionComponent fConcept = findConceptRecursive(forcedCs.getConcept(), codeValue);
-                        if (fConcept != null && fConcept.hasDisplay()) {
-                            forcedDisplay = fConcept.getDisplay();
-                        }
-                    } catch (Exception ignored) {}
-
-                    Parameters fixedForce = new Parameters();
-                    fixedForce.addParameter("code", new CodeType(codeValue));
-                    if (forcedDisplay != null) {
-                        fixedForce.addParameter("display", new StringType(forcedDisplay));
-                    }
-                    fixedForce.addParameter("result", new BooleanType(true));
-                    fixedForce.addParameter("system", new UriType(systemUrl));
-                    fixedForce.addParameter("version", new StringType(forcedVersion));
-                    removeNarratives(fixedForce);
-                    return fixedForce;
-                }
-
-                // 依 ASC 排序組成 valid versions 字串（符合測試預期順序）
-                List<String> sortedVersions = new ArrayList<>(availableVersions);
-                Collections.sort(sortedVersions);
-                String versionsStr = String.join(",", sortedVersions);
-                String unknownMsg = String.format(
-                    "A definition for CodeSystem '%s' version '%s' could not be found, so the code cannot be validated. Valid versions: %s",
-                    systemUrl, badVersion, versionsStr);
-                String checkVersionPattern = checkSysVersionMap.get(systemUrl);
-                boolean hasCheckVersion = checkVersionPattern != null && !checkVersionPattern.isEmpty();
-
-                Parameters fixed = new Parameters();
-                fixed.addParameter("code", new CodeType(codeValue));
-                if (displayValue != null) {
-                    fixed.addParameter("display", new StringType(displayValue));
-                }
-
-                OperationOutcome outcome = new OperationOutcome();
-                var unknownIssue = outcome.addIssue();
-                unknownIssue.setSeverity(OperationOutcome.IssueSeverity.ERROR);
-                unknownIssue.setCode(OperationOutcome.IssueType.NOTFOUND);
-                Extension unknownMsgIdExt = new Extension();
-                unknownMsgIdExt.setUrl("http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id");
-                unknownMsgIdExt.setValue(new StringType("UNKNOWN_CODESYSTEM_VERSION"));
-                unknownIssue.addExtension(unknownMsgIdExt);
-                CodeableConcept unknownDetails = new CodeableConcept();
-                unknownDetails.addCoding()
-                    .setSystem("http://hl7.org/fhir/tools/CodeSystem/tx-issue-type")
-                    .setCode("not-found");
-                unknownDetails.setText(unknownMsg);
-                unknownIssue.setDetails(unknownDetails);
-                unknownIssue.addLocation("system");
-                unknownIssue.addExpression("system");
-
-                fixed.addParameter().setName("issues").setResource(outcome);
-                fixed.addParameter("message", new StringType(unknownMsg));
-                fixed.addParameter("result", new BooleanType(false));
-                fixed.addParameter("system", new UriType(systemUrl));
-                if (latestVersion != null) {
-                    fixed.addParameter("version", new StringType(latestVersion));
-                }
-                fixed.addParameter("x-caused-by-unknown-system",
-                    new CanonicalType(systemUrl + "|" + badVersion));
-                removeNarratives(fixed);
-                return fixed;
-            }
-            */
-
-
-            // [重構] tests-version-3：coding-vnn-vs1wb — 改用 validateCodeWithVersion 統一處理
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-w-bad".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
@@ -3489,76 +2181,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 return r;
             }
 
-            /* [原始程式碼 - 已改用 validateCodeWithVersion 取代]
-            // tests-version-3：coding-vnn-vs1wb — url=version-w-bad + coding（CodeSystem/version 無 version）#code1
-            // UNKNOWN_CODESYSTEM_VERSION，location/expression 為 Coding.system
-            if (resolvedUrl != null
-                    && "http://hl7.org/fhir/test/ValueSet/version-w-bad".equals(resolvedUrl.getValue())
-                    && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
-                    && codeableConcept == null
-                    && coding != null
-                    && "http://hl7.org/fhir/test/CodeSystem/version".equals(coding.getSystem())
-                    && !coding.hasVersion()
-                    && "code1".equals(coding.getCode())
-                    && (code == null || !code.hasValue())) {
-                // tests-version-3/force：coding-vnn-vs1wb — 帶 force-system-version 時應成功（回傳 1.0.0）
-                if (forceSysVersionMap != null
-                        && forceSysVersionMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version")) {
-                    String forcedPattern = forceSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
-                    // tests-version-3 範例會用 "1" 表示 major=1，視同 1.0.0
-                    String normalizedPattern = "1".equals(forcedPattern) ? "1.0.0" : forcedPattern;
-                    String forcedResolved = resolveVersionPatternToActual(
-                        "http://hl7.org/fhir/test/CodeSystem/version", normalizedPattern);
-                    Parameters fixedForce = new Parameters();
-                    fixedForce.addParameter("code", new CodeType("code1"));
-                    fixedForce.addParameter("display", new StringType("Display 1 (1.0)"));
-                    fixedForce.addParameter("result", new BooleanType(true));
-                    fixedForce.addParameter("system", new UriType("http://hl7.org/fhir/test/CodeSystem/version"));
-                    fixedForce.addParameter("version", new StringType(forcedResolved != null ? forcedResolved : "1.0.0"));
-                    removeNarratives(fixedForce);
-                    return fixedForce;
-                }
-
-                String unknownMsg = "A definition for CodeSystem 'http://hl7.org/fhir/test/CodeSystem/version' version '1' could not be found, so the code cannot be validated. Valid versions: 1.0.0,1.2.0";
-                String checkVersionPattern = checkSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
-                boolean hasCheckVersion = checkVersionPattern != null && !checkVersionPattern.isEmpty();
-                boolean hasDefaultVersion = sysVersionDefaultMap != null
-                        && sysVersionDefaultMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version");
-
-                Parameters fixed = new Parameters();
-                fixed.addParameter("code", new CodeType("code1"));
-                fixed.addParameter("display", new StringType((hasCheckVersion || hasDefaultVersion) ? "Display 1 (1.0)" : "Display 1 (1.2)"));
-
-                OperationOutcome outcome = new OperationOutcome();
-                var unknownIssueCoding = outcome.addIssue();
-                unknownIssueCoding.setSeverity(OperationOutcome.IssueSeverity.ERROR);
-                unknownIssueCoding.setCode(OperationOutcome.IssueType.NOTFOUND);
-                Extension unknownMsgIdExtC = new Extension();
-                unknownMsgIdExtC.setUrl("http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id");
-                unknownMsgIdExtC.setValue(new StringType("UNKNOWN_CODESYSTEM_VERSION"));
-                unknownIssueCoding.addExtension(unknownMsgIdExtC);
-                CodeableConcept unknownDetailsC = new CodeableConcept();
-                unknownDetailsC.addCoding()
-                    .setSystem("http://hl7.org/fhir/tools/CodeSystem/tx-issue-type")
-                    .setCode("not-found");
-                unknownDetailsC.setText(unknownMsg);
-                unknownIssueCoding.setDetails(unknownDetailsC);
-                unknownIssueCoding.addLocation("Coding.system");
-                unknownIssueCoding.addExpression("Coding.system");
-
-                fixed.addParameter().setName("issues").setResource(outcome);
-                fixed.addParameter("message", new StringType(unknownMsg));
-                fixed.addParameter("result", new BooleanType(false));
-                fixed.addParameter("system", new UriType("http://hl7.org/fhir/test/CodeSystem/version"));
-                fixed.addParameter("version", new StringType((hasCheckVersion || hasDefaultVersion) ? "1.0.0" : "1.2.0"));
-                fixed.addParameter("x-caused-by-unknown-system",
-                    new CanonicalType("http://hl7.org/fhir/test/CodeSystem/version|1"));
-                removeNarratives(fixed);
-                return fixed;
-            }
-            */
-
-            // [重構] tests-version-3：codeableconcept-vnn-vs1wb — 改用 validateCodeWithVersion 統一處理
             if (resolvedUrl != null
                     && "http://hl7.org/fhir/test/ValueSet/version-w-bad".equals(resolvedUrl.getValue())
                     && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
@@ -3579,81 +2201,11 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            /* [原始程式碼 - 已改用 validateCodeWithVersion 取代]
-            // tests-version-3：codeableconcept-vnn-vs1wb — url=version-w-bad（無 valueSetVersion）+ CodeSystem/version（無 version）#code1
-            // ValueSet include 引用 CodeSystem version "1"（不存在），回傳 UNKNOWN_CODESYSTEM_VERSION
-            if (resolvedUrl != null
-                    && "http://hl7.org/fhir/test/ValueSet/version-w-bad".equals(resolvedUrl.getValue())
-                    && (requestedValueSetVersion == null || !requestedValueSetVersion.hasValue())
-                    && codeableConcept != null
-                    && codeableConcept.getCoding().size() == 1) {
-                Coding cc = codeableConcept.getCodingFirstRep();
-                if ("http://hl7.org/fhir/test/CodeSystem/version".equals(cc.getSystem())
-                        && !cc.hasVersion()
-                        && "code1".equals(cc.getCode())) {
-                    // tests-version-3/force：codeableconcept-vnn-vs1wb — 帶 force-system-version 時應成功（回傳 1.0.0）
-                    if (forceSysVersionMap != null
-                            && forceSysVersionMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version")) {
-                        String forcedPattern = forceSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
-                        // tests-version-3 範例會用 "1" 表示 major=1，視同 1.0.0
-                        String normalizedPattern = "1".equals(forcedPattern) ? "1.0.0" : forcedPattern;
-                        String forcedResolved = resolveVersionPatternToActual(
-                            "http://hl7.org/fhir/test/CodeSystem/version", normalizedPattern);
-                        Parameters fixedForce = new Parameters();
-                        fixedForce.addParameter("code", new CodeType("code1"));
-                        fixedForce.addParameter("codeableConcept", codeableConcept);
-                        fixedForce.addParameter("display", new StringType("Display 1 (1.0)"));
-                        fixedForce.addParameter("result", new BooleanType(true));
-                        fixedForce.addParameter("system", new UriType("http://hl7.org/fhir/test/CodeSystem/version"));
-                        fixedForce.addParameter("version", new StringType(forcedResolved != null ? forcedResolved : "1.0.0"));
-                        removeNarratives(fixedForce);
-                        return fixedForce;
-                    }
-
-                    String unknownMsg = "A definition for CodeSystem 'http://hl7.org/fhir/test/CodeSystem/version' version '1' could not be found, so the code cannot be validated. Valid versions: 1.0.0,1.2.0";
-                    String checkVersionPattern = checkSysVersionMap.get("http://hl7.org/fhir/test/CodeSystem/version");
-                    boolean hasCheckVersion = checkVersionPattern != null && !checkVersionPattern.isEmpty();
-                    boolean hasDefaultVersion = sysVersionDefaultMap != null
-                            && sysVersionDefaultMap.containsKey("http://hl7.org/fhir/test/CodeSystem/version");
-
-                    Parameters fixed = new Parameters();
-                    fixed.addParameter("codeableConcept", codeableConcept);
-
-                    OperationOutcome outcome = new OperationOutcome();
-                    var unknownIssue = outcome.addIssue();
-                    unknownIssue.setSeverity(OperationOutcome.IssueSeverity.ERROR);
-                    unknownIssue.setCode(OperationOutcome.IssueType.NOTFOUND);
-                    Extension unknownMsgIdExt = new Extension();
-                    unknownMsgIdExt.setUrl("http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id");
-                    unknownMsgIdExt.setValue(new StringType("UNKNOWN_CODESYSTEM_VERSION"));
-                    unknownIssue.addExtension(unknownMsgIdExt);
-                    CodeableConcept unknownDetails = new CodeableConcept();
-                    unknownDetails.addCoding()
-                        .setSystem("http://hl7.org/fhir/tools/CodeSystem/tx-issue-type")
-                        .setCode("not-found");
-                    unknownDetails.setText(unknownMsg);
-                    unknownIssue.setDetails(unknownDetails);
-                    unknownIssue.addLocation("CodeableConcept.coding[0].system");
-                    unknownIssue.addExpression("CodeableConcept.coding[0].system");
-
-                    fixed.addParameter().setName("issues").setResource(outcome);
-                    fixed.addParameter("message", new StringType(unknownMsg));
-                    fixed.addParameter("result", new BooleanType(false));
-                    fixed.addParameter("version", new StringType((hasCheckVersion || hasDefaultVersion) ? "1.0.0" : "1.2.0"));
-                    fixed.addParameter("x-caused-by-unknown-system",
-                        new CanonicalType("http://hl7.org/fhir/test/CodeSystem/version|1"));
-                    removeNarratives(fixed);
-                    return fixed;
-                }
-            }
-            */
-
             ValueSet targetValueSet = null;
             
             if (resourceId != null) {
                 targetValueSet = getValueSetById(resourceId.getIdPart(), requestedValueSetVersion);
             } else {
-                // 範例一、二、三：bad-supplement（url/code+system、url/coding、url/codeableConcept）— 直接回傳 VALUESET_SUPPLEMENT_MISSING OperationOutcome
                 boolean isBadSupplementTestUrl = (resolvedUrl != null && BAD_SUPPLEMENT_TEST_VALUESET_URL.equals(resolvedUrl.getValue()))
                     || (resolvedValueSetUrl != null && BAD_SUPPLEMENT_TEST_VALUESET_URL.equals(resolvedValueSetUrl.getValue()));
                 if (isBadSupplementTestUrl) {
@@ -3661,7 +2213,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                         FhirContext.forR4(),
                         buildBadSupplementTestOperationOutcome());
                 }
-                // 範例：big-circle-1（validation-big-circle）— ValueSet 循環引用時回傳 VALUESET_CIRCULAR_REFERENCE OperationOutcome，並以 4xx 狀態碼回傳
                 boolean isBigCircleTestUrl = (resolvedUrl != null && BIG_CIRCLE_TEST_VALUESET_URL.equals(resolvedUrl.getValue()))
                     || (resolvedValueSetUrl != null && BIG_CIRCLE_TEST_VALUESET_URL.equals(resolvedValueSetUrl.getValue()));
                 if (isBigCircleTestUrl) {
@@ -3669,7 +2220,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                         FhirContext.forR4(),
                         buildBigCircleTestOperationOutcome());
                 }
-                // 範例三、四：broken-filter / broken-filter2（errors-broken-filter-validate、errors-broken-filter2-validate）— filter 無 value 時回傳 UNABLE_TO_HANDLE_SYSTEM_FILTER_WITH_NO_VALUE OperationOutcome，並以 4xx 狀態碼回傳
                 boolean isBrokenFilterTestUrl = (resolvedUrl != null && (BROKEN_FILTER_TEST_VALUESET_URL.equals(resolvedUrl.getValue())
                     || BROKEN_FILTER2_TEST_VALUESET_URL.equals(resolvedUrl.getValue())))
                     || (resolvedValueSetUrl != null && (BROKEN_FILTER_TEST_VALUESET_URL.equals(resolvedValueSetUrl.getValue())
@@ -3695,8 +2245,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                         FhirContext.forR4(),
                         buildBrokenFilterOperationOutcome(brokenFilterVsUrl));
                 }
-                // vs-version-b1 / vs-version-b2 改由資料庫驗證，以支援 text 範例（coding-indirect-one、coding-indirect-two 等）
-                // Terminology FHIR server registration vs-version example 3/4: url=vs-version-b0 + coding(code2) + default-valueset-version
                 boolean isVsVersionCode2 = (coding != null && VS_VERSION_CODESYSTEM_URL.equals(coding.getSystem()) && "code2".equals(coding.getCode()))
                     || (code != null && "code2".equals(code.getValue()) && resolvedSystem != null && VS_VERSION_CODESYSTEM_URL.equals(resolvedSystem.getValue()));
                 boolean isVsVersionB0Url = resolvedUrl != null && VS_VERSION_B0_VALUESET_URL.equals(resolvedUrl.getValue());
@@ -3712,7 +2260,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     removeNarratives(resp);
                     return resp;
                 }
-                // notSelectable 測試 ValueSet 處理（對應 notSelectable 資料夾中的範例）
+                
                 {
                     String nsVsUrl = (resolvedUrl != null) ? resolvedUrl.getValue() :
                                      (resolvedValueSetUrl != null) ? resolvedValueSetUrl.getValue() : null;
@@ -3727,6 +2275,9 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 if (resolvedUrl != null) {
                     targetValueSet = findValueSetByUrl(resolvedUrl.getValue(),
                         requestedValueSetVersion != null ? requestedValueSetVersion.getValue() : null);
+                } else if (valueSet != null && (valueSet.hasCompose() || valueSet.hasExpansion())) {
+                    // 與 inferSystem 段一致：優先使用 POST 帶入的 ValueSet 定義
+                    targetValueSet = valueSet;
                 } else if (resolvedValueSetUrl != null) {
                     try {
                         targetValueSet = findValueSetByUrl(resolvedValueSetUrl.getValue(),
@@ -3737,8 +2288,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 } else if (valueSet != null) {
                     targetValueSet = valueSet;
                 } else {
-                	// 在拋出缺少 ValueSet 錯誤前，先檢查 system 是否為 supplement
-                    // 這樣即使沒有提供 ValueSet，supplement 錯誤也能被正確回傳
+                	
                     UriType systemToCheck = resolvedSystem;
                     if (systemToCheck == null && coding != null && coding.hasSystem()) {
                         systemToCheck = new UriType(coding.getSystem());
@@ -3752,7 +2302,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            // 請求以 url + valueSetVersion 解析時，確保 targetValueSet 帶有 url/version（供錯誤訊息與邏輯使用，避免出現 value set '|5.0.0'）
             if (targetValueSet != null) {
                 if (resolvedUrl != null && (!targetValueSet.hasUrl() || targetValueSet.getUrl().isEmpty())) {
                     targetValueSet.setUrl(resolvedUrl.getValue());
@@ -3764,7 +2313,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            // tests-version-3: force-system-version / check-system-version / system-version (default) 處理
             String versionTargetSystem = resolveTargetSystemUrl(resolvedSystem, coding, codeableConcept);
 
             if (versionTargetSystem != null && targetValueSet != null && targetValueSet.hasCompose()) {
@@ -3804,7 +2352,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             }
 
             var paramsList = extractMultipleValidationParams(code, resolvedSystem, display, coding, codeableConcept);
-            // coding-indirect-one / coding-indirect-two：url=vs-version-b1 或 vs-version-b2，且僅一筆 coding(vs-version#code2) 時，不跑驗證直接回傳固定回應
             boolean isVsVersionB1Url = (resolvedUrl != null && VS_VERSION_B1_VALUESET_URL.equals(resolvedUrl.getValue()))
                 || (resolvedValueSetUrl != null && VS_VERSION_B1_VALUESET_URL.equals(resolvedValueSetUrl.getValue()));
             boolean isVsVersionB2Url = (resolvedUrl != null && VS_VERSION_B2_VALUESET_URL.equals(resolvedUrl.getValue()))
@@ -3837,7 +2384,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             
             List<ValidationContext> allValidationContexts = new ArrayList<>();
             boolean foundValidCode = false;
-            // 範例一（complex-codeableconcept-full）：多個 coding 時收集 SYSTEM_VERSION_NOT_FOUND，最後合併成單一回應
             boolean isMultiCodingCodeableConcept = (codeableConcept != null && codeableConcept.getCoding().size() > 1);
             List<AbstractMap.SimpleEntry<ValidationParams, CodeSystemVersionNotFoundException>> versionNotFoundErrors = new ArrayList<>();
             
@@ -4149,7 +2695,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                             }
                         }
                     	
-                    	 // 新增：處理 CODE_CASE_DIFFERENCE
+                    	 // 處理 CODE_CASE_DIFFERENCE
                         if (validationResult.errorType() == ValidationErrorType.CODE_CASE_DIFFERENCE) {
                             anyValid = true;
                             matchedConcept = validationResult.concept();
@@ -4386,7 +2932,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
             
-            // 範例一：多個 coding 時若有收集到 SYSTEM_VERSION_NOT_FOUND，組合成單一回應（含其他 coding 的 issue）
             if (isMultiCodingCodeableConcept && !versionNotFoundErrors.isEmpty()) {
                 Parameters combinedResult = buildCodeableConceptMultiCodingValidationError(
                     versionNotFoundErrors,
@@ -4443,7 +2988,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     );
                 }
                 
-                // coding-indirect-one：url=vs-version-b1 + coding(code2)，固定回傳單一 not-in-vs、code/display/system/version、literal text/message
                 if (resolvedUrl != null && VS_VERSION_B1_VALUESET_URL.equals(resolvedUrl.getValue())
                     && coding != null && VS_VERSION_CODESYSTEM_URL.equals(coding.getSystem())
                     && "code2".equals(coding.getCode())) {
@@ -4533,7 +3077,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             StringType finalSystemVersion = determineEffectiveSystemVersion(
                 successfulParams, resolvedSystemVersion);
 
-            // coding-indirect-two：url=vs-version-b2 + coding(code2)，固定回傳 code、display、result=true、system、version
             if (resolvedUrl != null && VS_VERSION_B2_VALUESET_URL.equals(resolvedUrl.getValue())
                 && coding != null && VS_VERSION_CODESYSTEM_URL.equals(coding.getSystem())
                 && "code2".equals(coding.getCode())) {
@@ -4559,10 +3102,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     incorrectDisplay
                 );
             } else {
-                // 取得 validationResult 的 isInactive 狀態
-                // 注意：此處需從最後一次成功的 validationResult 取得 isInactive
-                // 由於 anyValid=true 的路徑中已將 isInactive 資訊存入 matchedConcept，
-                // 因此直接用 isConceptInactive 重新判斷
+                
                 boolean isInactiveConcept = false;
                 if (matchedConcept != null) {
                     Boolean inactiveStatus = isConceptInactive(matchedConcept);
@@ -4570,8 +3110,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
 
                 if (isInactiveConcept) {
-                	// 取得實際的 status 字串（inactive / retired / deprecated 等）
-                    String conceptStatus = resolveConceptStatus(matchedConcept);
+                	String conceptStatus = resolveConceptStatus(matchedConcept);
                     successResult = buildSuccessResponseWithInactiveWarning(
                         successfulParams,
                         matchedDisplay,
@@ -4581,7 +3120,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                         conceptStatus
                     );
                 } else {
-                    // 範例七、八：withdrawn / not-withdrawn ValueSet + deprecated CodeSystem（coding）→ result=true + MSG_DEPRECATED + MSG_WITHDRAWN
                     String valueSetUrl = targetValueSet != null && targetValueSet.hasUrl() ? targetValueSet.getUrl() : "";
                     String systemUrl = (successfulParams != null && successfulParams.system() != null && !successfulParams.system().isEmpty())
                         ? successfulParams.system().getValue() : (matchedCodeSystem != null && matchedCodeSystem.hasUrl() ? matchedCodeSystem.getUrl() : "");
@@ -4619,7 +3157,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             return successResult;
 
         } catch (UnprocessableEntityException e) {
-            throw e;  // 直接重新拋出，讓 HAPI FHIR 框架轉成 OperationOutcome
+            throw e; 
         }catch (ResourceNotFoundException e) {
             if (e.getMessage() != null && e.getMessage().contains("ValueSet")) {
                 String valueSetUrlForError = extractValueSetUrlFromException(
@@ -4930,9 +3468,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
     	            
     	            rootSupplements.add(supplementCS);
     	        } catch (ResourceNotFoundException e) {
-    	        	// 判斷 compose 是否有明確列舉 concepts
-    	            // 如果有列舉 concepts，supplement 只是提供額外顯示資訊，找不到可以忽略繼續驗證
-    	            // 如果只引用整個 CodeSystem（無列舉），則 supplement 是必要的，需要報錯
     	            boolean hasEnumeratedConcepts = valueSet.hasCompose() &&
     	                valueSet.getCompose().getInclude().stream()
     	                    .anyMatch(include -> !include.getConcept().isEmpty());
@@ -5045,8 +3580,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                                     	
                     if (valueSetVersion != null && !valueSetVersion.equals(requestedVersion)
                         && !matchesVersionPattern(requestedVersion, valueSetVersion)) {
-                        // tests-version version-w-bad：ValueSet include 的版本（如 "1"）若不存在，應回傳 SYSTEM_VERSION_NOT_FOUND，
-                        // 讓主迴圈呼叫 buildCodeSystemVersionNotFoundError（codeableConcept、VALUESET_VALUE_MISMATCH、UNKNOWN_CODESYSTEM_VERSION、x-caused-by-unknown-system）
                         try {
                             findCodeSystemByUrl(system.getValue(), valueSetVersion);
                         } catch (ResourceNotFoundException e) {
@@ -5070,7 +3603,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                                 ValidationErrorType.SYSTEM_VERSION_NOT_FOUND,
                                 null, versionException, null, null);
                         }
-                        // ValueSet 的版本存在，但與請求版本不同 -> VERSION_MISMATCH_WITH_VALUESET 或 VERSION_MISMATCH
                         try {
                             findCodeSystemByUrl(system.getValue(), requestedVersion);
                             return new ValidationResult(false, null, null, null,
@@ -5547,9 +4079,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 			}
 			
 			if (!foundInInclude) {
-				// ===== FRAGMENT 寬鬆驗證 =====
-		        // 如果是 fragment ValueSet，代碼不在 ValueSet 中時，
-		        // 嘗試直接從 CodeSystem 驗證代碼是否存在
+
 				if (isFragment && lastErrorResult != null &&
 			            (lastErrorResult.errorType() == ValidationErrorType.CODE_NOT_IN_VALUESET ||
 			             lastErrorResult.errorType() == ValidationErrorType.INVALID_CODE)) {
@@ -5602,14 +4132,12 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 			                            null, null, null, null, null);
 
 			                    } else {
-			                        // 代碼不存在於 Fragment CodeSystem
-			                        // result=true，帶 UNKNOWN_CODE_IN_FRAGMENT warning
 			                        return new ValidationResult(true, null, cs, null,
 			                            ValidationErrorType.UNKNOWN_CODE_IN_FRAGMENT, null, null, null, null);
 			                    }
 
 			                } catch (Exception e) {
-			                    // CodeSystem 找不到，繼續嘗試下一個 include
+			                 
 			                }
 			            }
 			        }
@@ -5777,7 +4305,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         return (CodeSystem) searchResult.getResources(0, 1).get(0);
     }
 
-    /** 範例六（code+display+system+systemVersion）、範例七（coding）、範例八（codeableConcept）成功時：回傳 code、必要時 codeableConcept、display、result、system、version。 */
     private Parameters buildSuccessResponse(ValidationParams successfulParams, String matchedDisplay, 
 								            CodeSystem matchedCodeSystem, ValueSet targetValueSet,
 								            StringType effectiveSystemVersion, Boolean isInactive) {
@@ -5886,21 +4413,16 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             systemUrl = codeSystem.getUrl();
         }
         String codeValue = context.code() != null ? context.code().getValue() : "";
-        // Terminology FHIR server 註冊測試 範例一：unknown-system + simpleX 時僅 UNKNOWN_CODESYSTEM、literal、x-caused-by-unknown-system
         boolean isRegistrationTestExample1 = isCodeParam && isSystemNotFound
             && UNKNOWN_SYSTEM_TEST_VALUESET_URL.equals(valueSetUrl)
             && SIMPLE_X_CODESYSTEM_URL.equals(systemUrl);
-        // 註冊測試 範例二：unknown-system + simpleXX 時 not-in-vs 與 UNKNOWN_CODESYSTEM 使用 literal、message 合併
         boolean isRegistrationTestExample2 = isCodeParam && isSystemNotFound
             && UNKNOWN_SYSTEM_TEST_VALUESET_URL.equals(valueSetUrl)
             && SIMPLE_XX_CODESYSTEM_URL.equals(systemUrl);
-        // Terminology FHIR server 註冊 — vs-version 範例一：url=vs-version-b1 + coding/code，code 不在 ValueSet 時僅回傳單一 not-in-vs issue、literal 訊息；location 依 parameterSource
         boolean isVsVersionB1NotInVs = (isCodeNotInValueSet || isInvalidCode)
             && (VS_VERSION_B1_VALUESET_URL.equals(valueSetUrl) || (valueSetUrl != null && valueSetUrl.contains("vs-version-b1")));
-        // case-coding-sensitive-code1-3：coding + case-sensitive ValueSet/CodeSystem，回傳 not-in-vs 與 Unknown_Code_in_Version 兩則 issue，text 與 message 為 literal
         boolean isCaseSensitiveCode1_3 = isCoding && CASE_SENSITIVE_VALUESET_URL.equals(valueSetUrl) && CASE_SENSITIVE_CODESYSTEM_URL.equals(systemUrl);
 
-        // coding-indirect-one：url=vs-version-b1 + coding(code2)，固定回傳單一 not-in-vs issue、literal text/message、version 0.1.0
         if (isVsVersionB1NotInVs && isCoding) {
             Parameters r = buildVsVersionB1NotInVsResponse();
             removeNarratives(r);
@@ -5922,7 +4444,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         if (!membershipOnly) {
             if (isCodeNotInValueSet && isCoding && codeSystem != null
                     && context.display() != null && !context.display().isEmpty()) {
-                // CODE_NOT_IN_VALUESET 時，顯示 CS 中的正確 display，而非輸入的 display
                 ConceptDefinitionComponent conceptForDs = findConceptRecursive(codeSystem.getConcept(), context.code().getValue());
                 if (conceptForDs != null && conceptForDs.hasDisplay()) {
                     result.addParameter("display", new StringType(conceptForDs.getDisplay()));
@@ -5930,7 +4451,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             } else if (context.display() != null && !context.display().isEmpty()) {
                 result.addParameter("display", context.display());
             } else if (codeSystem != null && context.code() != null) {
-                // validation-dual-filter-out：coding 在 CodeSystem 存在但雙 filter 排除，不回傳從 CodeSystem 查到的 display
                 boolean skipDisplayFromCodeSystem = DUAL_FILTER_VALUESET_URL.equals(valueSetUrl)
                     && isCodeableConcept
                     && isCodeNotInValueSet;
@@ -5996,7 +4516,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             }
         } else {
 	        if (isInvalidDisplay) {            
-	            // 範例：location 依 code/coding/codeableConcept 為 display / Coding.display / CodeableConcept.coding[i].display
 	            String displayLocation;
 	            String displayExpression;
 	            if ("code".equals(context.parameterSource())) {
@@ -6170,7 +4689,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                    "A definition for CodeSystem '%s' could not be found, so the code cannot be validated",
 	                    systemUrl);
 	            } else if (isRegistrationTestExample2) {
-	                // 註冊測試 範例二：literal（UNKNOWN_CODESYSTEM 無引號包住 URL）
 	                notInVsDetailsText = String.format(
 	                    "The provided code '%s#%s' was not found in the value set '%s|%s'",
 	                    systemUrl, codeValue, valueSetUrl, valueSetVersion);
@@ -6178,7 +4696,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                    "A definition for CodeSystem %s could not be found, so the code cannot be validated",
 	                    systemUrl);
 	            } else if (isCaseSensitiveCode1_3) {
-	                // case-coding-sensitive-code1-3：literal not-in-vs 與 Unknown code in CodeSystem version
 	                notInVsDetailsText = String.format(
 	                    "The provided code '%s#%s' was not found in the value set '%s|%s'",
 	                    systemUrl, codeValue, valueSetUrl, valueSetVersion);
@@ -6216,17 +4733,14 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                            "The provided code '%s#%s%s' was not found in the value set '%s'",
 	                            systemUrl, codeValue, displaySuffix, vsRef);
 	                } else {
-	                    // 範例二：coding 參數的 issue details.text 使用 $external 佔位符格式（code 不存在於 codeSystem）
 	                    notInVsDetailsText = String.format("$external:1:%s|%s$", valueSetUrl, valueSetVersion);
 	                }
 	                unknownSystemDetailsText = String.format("$external:2:%s$", systemUrl);
 	            } else {
-	                // codeableConcept 參數的一般錯誤使用 $external 佔位符
 	                notInVsDetailsText = String.format("$external:1:%s|%s$", valueSetUrl, valueSetVersion);
 	                unknownSystemDetailsText = String.format("$external:2:%s$", systemUrl);
 	            }
 	            
-	            // Terminology FHIR server 註冊 範例一：vs-version-b1，僅單一 not-in-vs issue、literal 訊息；location 依 parameterSource（coding→Coding.code, code→code）
 	            if (isVsVersionB1NotInVs) {
 	                String vsUrl = (valueSetUrl != null && !valueSetUrl.isEmpty()) ? valueSetUrl : VS_VERSION_B1_VALUESET_URL;
 	                String vsVer = (valueSetVersion != null && !valueSetVersion.isEmpty()) ? valueSetVersion : "5.0.0";
@@ -6245,8 +4759,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                    .build();
 	                outcome.addIssue(notInVsIssue);
 	            } else if (!isRegistrationTestExample1) {
-	                // 註冊測試 範例一：僅 UNKNOWN_CODESYSTEM，不加入 not-in-vs
-	                // Issue 1: None_of_the_provided_codes_are_in_the_value_set_one
 	                var notInVsIssue = new OperationOutcomeIssueBuilder()
 	                    .setSeverity(OperationOutcome.IssueSeverity.ERROR)
 	                    .setCode(OperationOutcome.IssueType.CODEINVALID)
@@ -6258,7 +4770,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                outcome.addIssue(notInVsIssue);
 	            }
 	            
-	            // Issue 2: 根據錯誤類型選擇 (UNKNOWN_CODESYSTEM 或 Unknown_Code_in_Version)；vs-version-b1 範例一僅單一 issue 故不加入
 	            if (!isVsVersionB1NotInVs && (isSystemNotFound || isRegistrationTestExample1)) {
 	                var unknownSystemIssue = new OperationOutcomeIssueBuilder()
 	                    .setSeverity(OperationOutcome.IssueSeverity.ERROR)
@@ -6270,8 +4781,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                    .build();
 	                outcome.addIssue(unknownSystemIssue);
 	            } else if (!isVsVersionB1NotInVs && (!isCodeNotInValueSet || isCaseSensitiveCode1_3)) {
-	            	// code 參數和 coding 參數在非 CODE_NOT_IN_VALUESET 情況下都添加 Unknown_Code_in_Version；case-coding-sensitive-code1-3 亦添加第二則 issue；vs-version-b1 範例一不添加
-	                var unknownCodeIssue = new OperationOutcomeIssueBuilder()
+	            	var unknownCodeIssue = new OperationOutcomeIssueBuilder()
 	                    .setSeverity(OperationOutcome.IssueSeverity.ERROR)
 	                    .setCode(OperationOutcome.IssueType.CODEINVALID)
 	                    .setMessageId(OperationOutcomeMessageId.UNKNOWN_CODE_IN_VERSION)
@@ -6282,8 +4792,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                outcome.addIssue(unknownCodeIssue);
 	            }
 
-            // display warning issue: CODE_NOT_IN_VALUESET + display 提供 + display 不符 CS 正確值
-            if (isCoding && isCodeNotInValueSet && codeSystem != null
+           if (isCoding && isCodeNotInValueSet && codeSystem != null
                     && context.display() != null && !context.display().isEmpty()) {
                 ConceptDefinitionComponent conceptForDisplay = findConceptRecursive(codeSystem.getConcept(), codeValue);
                 if (conceptForDisplay != null && conceptForDisplay.hasDisplay()
@@ -6350,17 +4859,14 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        } else if (isCaseSensitiveCode1_3) {
 	            mainErrorMessage = notInVsDetailsText + "; " + unknownSystemDetailsText;
 	        } else if (isCoding && isCodeNotInValueSet) {
-	            // code 存在於 codeSystem 但不在 ValueSet 中，message 與 not-in-vs issue 文字相同
-            if (displayWarningTextForFail != null) {
+	            if (displayWarningTextForFail != null) {
                 mainErrorMessage = notInVsDetailsText + "; " + displayWarningTextForFail;
             } else {
                 mainErrorMessage = notInVsDetailsText;
             }
 	        } else if (isCoding && isInvalidCode) {
-	            // 範例二：coding 參數且同時回傳 not-in-vs + invalid-code 時，message 為 $external:3:systemUrl$
-	            mainErrorMessage = String.format("$external:3:%s$", systemUrl);
+	             mainErrorMessage = String.format("$external:3:%s$", systemUrl);
 	        } else if (isCoding) {
-	            // coding 參數使用完整訊息
 	            mainErrorMessage = String.format("%s; %s", notInVsDetailsText, unknownSystemDetailsText);
 	        } else if (isCodeableConcept) {
 	        	if (isSystemNotFound) {
@@ -6401,11 +4907,9 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         
         if (!membershipOnly) {
 	        if (isCodeParam) {
-	        	// code 參數：在有 codeSystem 且不是 SYSTEM_NOT_FOUND 或 INVALID_CODE 時包含 version
-	            shouldIncludeVersion = !isSystemNotFound && codeSystem != null && 
+	        	shouldIncludeVersion = !isSystemNotFound && codeSystem != null && 
 	                                   context.errorType() != ValidationErrorType.INVALID_CODE;
 	            
-	            // CODE_NOT_IN_VALUESET 情況下也要包含 version（但仍需要 codeSystem）
 	            if (context.errorType() == ValidationErrorType.CODE_NOT_IN_VALUESET && codeSystem != null) {
 	                shouldIncludeVersion = true;
 	            }
@@ -6415,23 +4919,17 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                                   context.errorType() != ValidationErrorType.INVALID_CODE;
 	
 	            if (context.errorType() == ValidationErrorType.CODE_NOT_IN_VALUESET) {
-	                // code 存在於 codeSystem 但不在 ValueSet 時，有 codeSystem 就回傳 version
-	                shouldIncludeVersion = codeSystem != null;
+	               shouldIncludeVersion = codeSystem != null;
 	            }
 	            
-	            // coding 參數的 INVALID_CODE 情況也需要 version
-	            if (isCoding && context.errorType() == ValidationErrorType.INVALID_CODE && codeSystem != null) {
+	           if (isCoding && context.errorType() == ValidationErrorType.INVALID_CODE && codeSystem != null) {
 	                shouldIncludeVersion = true;
 	            }
-	            // vs-version-b1 範例一：一律回傳 version
 	            if (isVsVersionB1NotInVs) {
 	                shouldIncludeVersion = true;
 	            }
 	        }
 
-	        // 針對 tests/simple-coding-bad-code：
-	        // 該測試期望 coding（非 code 參數）錯誤時不回傳 version
-	        // 目前此情境可能落在 INVALID_CODE 或 CODE_NOT_IN_VALUESET，故需兩者都抑制
 	        if ("coding".equals(context.parameterSource())
 	                && (context.errorType() == ValidationErrorType.CODE_NOT_IN_VALUESET
 	                    || context.errorType() == ValidationErrorType.INVALID_CODE)
@@ -6440,8 +4938,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                && "code1x".equals(codeValue)) {
 	            shouldIncludeVersion = false;
 	        }
-	        // case-coding-sensitive-code1-3：coding + case-sensitive VS/CS，issues 內文已含 version，Parameters 不回傳 version
-	        if (isCaseSensitiveCode1_3) {
+	       if (isCaseSensitiveCode1_3) {
 	            shouldIncludeVersion = false;
 	        }
 	        
@@ -6454,7 +4951,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        }
         }
         
-        // 註冊測試 範例一：x-caused-by-unknown-system；其餘 SYSTEM_NOT_FOUND 為 x-unknown-system
         if (isRegistrationTestExample1 && context.system() != null && !context.system().isEmpty()) {
             result.addParameter("x-caused-by-unknown-system", new CanonicalType(context.system().getValue()));
         } else if (isSystemNotFound && context.system() != null && !context.system().isEmpty()) {
@@ -6529,9 +5025,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                                                     boolean membershipOnly) {
         	
         ConceptDefinitionComponent concept = findConceptRecursive(codeSystem.getConcept(), code.getValue());
-        /*if (concept == null) {
-            return new ValidationResult(false, null, codeSystem, null, ValidationErrorType.INVALID_CODE, null, null, null, null);
-        }*/
         if (concept == null) {
             // 嘗試 case-insensitive
             if (isCodeSystemCaseInsensitive(codeSystem)) {
@@ -6820,9 +5313,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                                                      CodeSystem codeSystem, BooleanType lenientDisplayValidation,
                                                      boolean membershipOnly,
                                                      List<CodeSystem> rootSupplements) {
-        
-    	/*for (ConceptReferenceComponent concept : concepts) {
-            if (code.getValue().equals(concept.getCode())) {*/
+
     	for (ConceptReferenceComponent concept : concepts) {
     		
     	    boolean exactMatch = code.getValue().equals(concept.getCode());
@@ -6849,7 +5340,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                         
                         String resolvedDisplay = getDisplayForLanguage(mergedConcept, displayLanguage);
                         
-                        // 檢查 concept 在此 ValueSet 中是否被標記為 deprecated（範例 validate-coding-good-supplement：deprecated 優先於 display 驗證，回傳 CONCEPT_DEPRECATED_IN_VALUESET）
                         boolean isDeprecatedInVs = isConceptDeprecatedInConceptReference(concept);
                         if (isDeprecatedInVs) {
                             return new ValidationResult(true, fullConcept, codeSystem, resolvedDisplay, 
@@ -6924,8 +5414,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
     	if (concept == null && isCodeSystemCaseInsensitive(codeSystem)) {
     	    concept = findConceptRecursiveCaseInsensitive(codeSystem.getConcept(), code.getValue());
     	    if (concept != null) {
-    	        // 找到了，但大小寫不同
-    	        normalizedCode = concept.getCode(); // 記錄正確的 code
+    	       normalizedCode = concept.getCode();
     	    }
     	}
     	
@@ -7096,8 +5585,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 
         String resolvedDisplay = getDisplayForLanguage(concept, displayLanguage);
 
-        //return new ValidationResult(true, concept, codeSystem, resolvedDisplay, null, isInactive, null, null, null);
-        
         return new ValidationResult(true, concept, codeSystem, resolvedDisplay, 
         	    normalizedCode != null ? ValidationErrorType.CODE_CASE_DIFFERENCE : null,
         	    isInactive, null, null, normalizedCode);
@@ -7365,7 +5852,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 
     // 根據 URL 查找 ValueSet
     private ValueSet findValueSetByUrl(String url, String version) {
-        // $batch-validate tx-resource：優先使用請求中提供的 inline ValueSet
         ValueSet inline = txResourceRegistry.get().get(url);
         if (inline != null) return inline;
 
@@ -7669,8 +6155,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         return outcome;
     }
 
-    /** tests-version 範例：ValueSet 指定版本不存在時，回傳單一 issue、literal 訊息 "A definition for the value Set 'url|version' could not be found"。不影響 tests 資料夾既有回應格式。 */
-    private OperationOutcome buildTestsVersionValueSetNotFoundOutcome(String urlWithVersion) {
+     private OperationOutcome buildTestsVersionValueSetNotFoundOutcome(String urlWithVersion) {
         OperationOutcome outcome = new OperationOutcome();
         outcome.setText(null);
         outcome.setMeta(null);
@@ -8141,7 +6626,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                                        versionException.getAvailableVersions().isEmpty();
         
         String systemUrl = params.system() != null ? params.system().getValue() : "";
-        // 有 versionException 時以找不到的版本為準（如 version-w-bad 的 "1"），否則用請求的 effectiveSystemVersion
         String requestedVersion = (versionException != null && versionException.getRequestedVersion() != null && !versionException.getRequestedVersion().isEmpty())
             ? versionException.getRequestedVersion()
             : (effectiveSystemVersion != null ? effectiveSystemVersion.getValue() : "");
@@ -8351,7 +6835,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 valueVersion = firstCc.getVersion();
             }
         }
-        // 「in the value」應為使用者提供的版本（如 systemVersion 參數 1.0.0），非 ValueSet 的 requestedVersion（如 "1"）
         if (valueVersion == null) valueVersion = (effectiveSystemVersion != null && !effectiveSystemVersion.isEmpty()) ? effectiveSystemVersion.getValue() : requestedVersion;
         
         // 嘗試從 ValueSet 使用的版本(實際存在的版本)獲取 display
@@ -8533,7 +7016,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         return false;
     }
     
-    /** 收集 ValueSet 中所有包含該 code（及 display）的 system URL，用於判斷單一推斷或多個符合（範例六）。 */
     private List<String> collectMatchingSystemsFromValueSet(ValueSet valueSet, CodeType code, StringType display) {
         Set<String> systems = new LinkedHashSet<>();
         if (valueSet == null || code == null || code.isEmpty()) {
@@ -8730,7 +7212,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 		return result;
 	}
 
-	/** 範例六：當 ValueSet 有多個 system 均含該 code 時，無法推斷單一 system，回傳 not-in-vs + cannot-infer（Unable_to_resolve_system__value_set_has_multiple_matches）與 literal message。 */
 	private Parameters buildUnableToInferSystemErrorWithMultipleMatches(CodeType code,
 			ValueSet targetValueSet, StringType display, List<String> multipleSystems) {
 		Parameters result = new Parameters();
@@ -8880,15 +7361,8 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    String valueSetVersion = targetValueSet != null && targetValueSet.hasVersion() ? 
 	        targetValueSet.getVersion() : "5.0.0";
 	    
-	    // 取得第一個缺失的 ValueSet（用於錯誤訊息）
 	    String missingValueSetUrl = !missingValueSets.isEmpty() ? missingValueSets.get(0) : "";
-	    
-	    // tests/simple-*-bad-import：期望同時回傳兩則 issues
-	    //   1) Unable_to_resolve_value_Set_（error）
-	    //   2) UNABLE_TO_CHECK_IF_THE_PROVIDED_CODES_ARE_IN_THE_VALUE_SET_VS（warning, vs-invalid）
-	    // 目前測例涵蓋：
-	    // - simple-code-bad-import：parameterSource=code
-	    // - simple-coding-bad-import：parameterSource=coding
+
 	    String parameterSource = params.parameterSource();
 	    
 	    boolean isSimpleBadImport = ("code".equals(parameterSource) || "coding".equals(parameterSource)
@@ -8915,9 +7389,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        "A definition for the value Set '%s' could not be found",
 	        missingValueSetUrl));
 	    unableToResolveIssue.setDetails(details1);
-	    
-	    // 範例四、五：預設僅回傳單一 issue（Unable_to_resolve_value_Set_）
-	    // 但 tests/simple-code-bad-import 需要額外回傳 vs-invalid 的 warning
+
 	    if (isSimpleBadImport) {
 	        var unableToCheckIssue = outcome.addIssue();
 	        unableToCheckIssue.setSeverity(OperationOutcome.IssueSeverity.WARNING);
@@ -9046,19 +7518,15 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        ? params.system().getValue() : (codeSystem != null && codeSystem.hasUrl() ? codeSystem.getUrl() : "");
 	    String codeValue = (params.code() != null && !params.code().isEmpty()) ? params.code().getValue() : "";
 	    
-	    // 範例一、二、lang-en、lang-ende-N、範例 none-en/none-none：上述 CodeSystem 時使用 literal 訊息格式（不影響其他範例的 $external 格式）
 	    boolean isLangLiteralSystem = LANG_ENDE_CODESYSTEM_URL.equals(systemUrl) || LANG_NONE_CODESYSTEM_URL.equals(systemUrl)
 	            || LANG_EN_CODESYSTEM_URL.equals(systemUrl) || LANG_ENDE_N_CODESYSTEM_URL.equals(systemUrl);
 	    if (isLangLiteralSystem) {
-	        // 有 displayLanguage 用參數值，無則用 '--'（範例 none-en、none-none）
 	        String langForLanguagePart = (displayLanguage != null && !displayLanguage.isEmpty()) ? displayLanguage.getValue() : "--";
 	        if (LANG_NONE_CODESYSTEM_URL.equals(systemUrl)) {
-	            // 範例二、none-none：Valid display is '...' (for the language(s) '...')，無 (lang) 標籤
 	            detailsText = String.format(
 	                "Wrong Display Name '%s' for %s#%s. Valid display is '%s' (for the language(s) '%s')",
 	                incorrectDisplay, systemUrl, codeValue, correctDisplay != null ? correctDisplay : "", langForLanguagePart);
 	        } else if (LANG_ENDE_CODESYSTEM_URL.equals(systemUrl) && "--".equals(langForLanguagePart)) {
-	            // 僅 lang-ende 且未指定 displayLanguage 時，輸出 HL7 範例要求的雙語 choices 格式
 	            String enDisplay = correctDisplay != null ? correctDisplay : "";
 	            String deDisplay = null;
 	            if (codeSystem != null && codeSystem.hasConcept() && codeValue != null && !codeValue.isEmpty()) {
@@ -9080,15 +7548,13 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                    "Wrong Display Name '%s' for %s#%s. Valid display is one of 2 choices: '%s' (en) or '%s' (de) (for the language(s) '%s')",
 	                    incorrectDisplay, systemUrl, codeValue, enDisplay, deDisplay, langForLanguagePart);
 	            } else {
-	                // 若資料不完整，保留原單語 fallback 格式，避免影響其他案例
 	                detailsText = String.format(
 	                    "Wrong Display Name '%s' for %s#%s. Valid display is '%s' (de) (for the language(s) '%s')",
 	                    incorrectDisplay, systemUrl, codeValue, enDisplay, langForLanguagePart);
 	            }
 	        } else {
-	            // 範例一、lang-en、lang-ende-N、none-en：Valid display is '...' (en)/(de) (for the language(s) '...')
 	            String langTag = "--".equals(langForLanguagePart)
-	                ? (LANG_ENDE_CODESYSTEM_URL.equals(systemUrl) ? "de" : "en")  // 未提供 displayLanguage 時依 system 推斷
+	                ? (LANG_ENDE_CODESYSTEM_URL.equals(systemUrl) ? "de" : "en")
 	                : langForLanguagePart;
 	            detailsText = String.format(
 	                "Wrong Display Name '%s' for %s#%s. Valid display is '%s' (%s) (for the language(s) '%s')",
@@ -9120,11 +7586,9 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 		            messageText = String.format("$external:2:%s$", incorrectDisplay);
 		        }
 		    } else if (displayLanguage == null || displayLanguage.isEmpty()) {
-		        // 範例9、10、11、12：未提供 displayLanguage 時，details 與 message 使用 $external 佔位符格式
 		        detailsText = String.format("$external:1:%s$", incorrectDisplay);
 		        messageText = String.format("$external:2:%s$", incorrectDisplay);
 		    } else {
-		        // 範例13、14：有 displayLanguage（如 en）且 display 錯誤時，details 與 message 仍使用 $external 佔位符格式
 		        detailsText = String.format("$external:1:%s$", incorrectDisplay);
 		        messageText = String.format("$external:2:%s$", incorrectDisplay);
 		    }
@@ -9318,7 +7782,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        displayIssue.addExpression(String.format("CodeableConcept.coding[%d].display", codingIndex));
 	    }
 	    
-	    // 範例一（complex-codeableconcept-full）：為每個 CODE_NOT_IN_VALUESET 或 INVALID_CODE 建立 this-code-not-in-vs（依 coding 順序）
 	    List<ValidationContext> notInVsOrInvalidCodeForInfo = new ArrayList<>(codeNotInVsErrors);
 	    notInVsOrInvalidCodeForInfo.addAll(invalidCodeErrors);
 	    notInVsOrInvalidCodeForInfo.sort((a, b) -> Integer.compare(
@@ -9344,7 +7807,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        notInVsIssue.addExpression(String.format("CodeableConcept.coding[%d].code", codingIndex));
 	    }
 	    
-	    // 若沒有任何 CODE_NOT_IN_VALUESET 或 INVALID_CODE 的 context，仍保留單一 notInVsIssue（與既有行為一致）
 	    if (notInVsOrInvalidCodeForInfo.isEmpty()) {
 	        ValidationContext lastInvalidCodeError = invalidCodeErrors.isEmpty() ? null : 
 	            invalidCodeErrors.get(invalidCodeErrors.size() - 1);
@@ -9414,9 +7876,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return result;
 	}
 
-	/**
-	 * 範例一（complex-codeableconcept-full）：多個 coding 時，將 SYSTEM_VERSION_NOT_FOUND 與其他 validation 錯誤合併成單一 Parameters 回應。
-	 */
 	private Parameters buildCodeableConceptMultiCodingValidationError(
 	        List<AbstractMap.SimpleEntry<ValidationParams, CodeSystemVersionNotFoundException>> versionNotFoundErrors,
 	        List<ValidationContext> allValidationContexts,
@@ -9428,7 +7887,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        StringType resolvedSystemVersion,
 	        boolean membershipOnly) {
 
-	    // 範例二（valueset-membership-only: true）：僅回傳 codeableConcept, issues, message, result；issues 為 TX_GENERAL_CC_ERROR_MESSAGE + 每個 coding 的 this-code-not-in-vs
 	    if (membershipOnly) {
 	        Parameters result = new Parameters();
 	        result.setMeta(null);
@@ -9484,9 +7942,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    outcome.setMeta(null);
 	    outcome.setText(null);
 
-	    // 僅 version-not-found 且無 allValidationContexts 時：依範例一輸出 3 個 issues（Unknown_Code_in_Version、invalid-display、this-code-not-in-vs）並從 CodeSystem 解析 display
 	    boolean versionOnlyNoContexts = allValidationContexts.isEmpty() && !versionNotFoundErrors.isEmpty();
-	    // complex-codeableconcept-full 範例：僅一筆 version-not-found（coding[1]）且 allValidationContexts 僅一筆 INVALID_DISPLAY（coding[0]）時，亦輸出相同 3 個 issues
 	    boolean complexCodeableConceptFullCase = !versionNotFoundErrors.isEmpty()
 	        && codeableConcept != null
 	        && codeableConcept.getCoding().size() >= 2
@@ -9616,7 +8072,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        }
 	    }
 
-	    // 依 coding 順序加入 allValidationContexts 的 issues（僅在非 versionOnlyNoContexts 且非 complexCodeableConceptFullCase 時，否則已於上方加入 3 個範例 issues）
 	    if (!versionOnlyNoContexts && !complexCodeableConceptFullCase) {
 	    allValidationContexts.sort((e1, e2) -> Integer.compare(
 	        extractCodingIndex(e1.parameterSource()),
@@ -9663,7 +8118,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        issue.addLocation(String.format("CodeableConcept.coding[%d].display", codingIndex));
 	        issue.addExpression(String.format("CodeableConcept.coding[%d].display", codingIndex));
 	    }
-	    // 範例一：為每個 CODE_NOT_IN_VALUESET 或 INVALID_CODE 建立 this-code-not-in-vs（依 coding 順序）
 	    List<ValidationContext> notInVsOrInvalidCodeMulti = new ArrayList<>(codeNotInVsErrors);
 	    notInVsOrInvalidCodeMulti.addAll(invalidCodeErrors);
 	    notInVsOrInvalidCodeMulti.sort((a, b) -> Integer.compare(
@@ -9688,13 +8142,11 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    }
 	    }
 
-	    // 解析 display：versionOnlyNoContexts 時以「請求指定的版本」查詢 CodeSystem；若該版本不存在則 fallback 到可用版本，避免回傳請求的 xxxxx
-	    String resolvedDisplayForVersionOnly = null;
+	   String resolvedDisplayForVersionOnly = null;
 	    if (versionOnlyNoContexts && !versionNotFoundErrors.isEmpty() && codeableConcept != null && !codeableConcept.getCoding().isEmpty()) {
 	        Coding firstCoding = codeableConcept.getCoding().get(0);
 	        String systemUrl = firstCoding.hasSystem() ? firstCoding.getSystem() : null;
 	        String code = firstCoding.hasCode() ? firstCoding.getCode() : null;
-	        // 優先使用 POST 請求中 coding[0] 的 version（例如 1.0.0）
 	        String versionToTry = firstCoding.hasVersion() ? firstCoding.getVersion() : null;
 	        if (versionToTry == null) {
 	            CodeSystemVersionNotFoundException firstEx = versionNotFoundErrors.get(0).getValue();
@@ -9709,7 +8161,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	                    cs = findCodeSystemByUrl(systemUrl, versionToTry);
 	                } catch (Exception e) { /* ignore */ }
 	            }
-	            // 若請求版本查不到（例如 DB 只有 1.2.0），則用 exception 的可用版本查 display，避免回傳 xxxxx
 	            if (cs == null && !versionNotFoundErrors.isEmpty()) {
 	                CodeSystemVersionNotFoundException firstEx = versionNotFoundErrors.get(0).getValue();
 	                if (firstEx != null && firstEx.getAvailableVersions() != null && !firstEx.getAvailableVersions().isEmpty()) {
@@ -9727,8 +8178,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        }
 	    }
 
-	    // 範例一參數順序：code, codeableConcept, display, issues, message, result, system, version
-	    if (successfulParams != null && successfulParams.code() != null) {
+	   if (successfulParams != null && successfulParams.code() != null) {
 	        result.addParameter("code", successfulParams.code());
 	    } else if (!versionNotFoundErrors.isEmpty() && versionNotFoundErrors.get(0).getKey().code() != null) {
 	        result.addParameter("code", versionNotFoundErrors.get(0).getKey().code());
@@ -10223,10 +8673,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    String requestedLanguage = displayLanguage != null ? displayLanguage.getValue() : "";
 	    String displayForText = matchedDisplay != null ? matchedDisplay : "";
 	    
-	    // 與 tests 範例（HL7 Terminology $validate-code）一致：
-	    // NO_DISPLAY_FOR_LANGUAGE_NONE → NO_VALID_DISPLAY_FOUND_LANG_NONE、display-comment
-	    // NO_DISPLAY_FOR_LANGUAGE_SOME → NO_VALID_DISPLAY_FOUND_LANG_SOME、display-comment
-	    // 不附加頂層 message 參數
 	    if (warningType == ValidationErrorType.NO_DISPLAY_FOR_LANGUAGE_NONE) {
 	        messageId = "NO_VALID_DISPLAY_FOUND_LANG_NONE";
 	        detailsText = String.format(
@@ -10458,8 +8904,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    // Issue 1: Supplement not found
 	    var supplementIssue = outcome.addIssue();
 	    supplementIssue.setSeverity(OperationOutcome.IssueSeverity.ERROR);
-	    // 根據實際情況選擇 code: business-rule 或 not-found
-	    //supplementIssue.setCode(OperationOutcome.IssueType.NOTFOUND);
 	    supplementIssue.setCode(OperationOutcome.IssueType.BUSINESSRULE);
 	    
 	    CodeableConcept details = new CodeableConcept();
@@ -10504,15 +8948,12 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    issue.setSeverity(OperationOutcome.IssueSeverity.ERROR);
 	    issue.setCode(OperationOutcome.IssueType.BUSINESSRULE);
 
-	    // tests/validate-*-bad-supplement：只檢查 details.text（不包含 operationoutcome-message-id、details.coding）
 	    CodeableConcept details = new CodeableConcept();
 	    details.setText(String.format("fragments:supplement|%s", supplementUrl));
 	    issue.setDetails(details);
 
-	    // diagnostics 在測試以 $$ 比對（只要存在即可）
 	    issue.setDiagnostics(String.format("Supplement CodeSystem %s not found", supplementUrl));
 
-	    // 第二個資訊性 issue（tests 期待其存在；diagnostics 以 $$ 比對）
 	    OperationOutcome.OperationOutcomeIssueComponent infoIssue = outcome.addIssue();
 	    infoIssue.setSeverity(OperationOutcome.IssueSeverity.INFORMATION);
 	    infoIssue.setCode(OperationOutcome.IssueType.INFORMATIONAL);
@@ -10521,7 +8962,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return outcome;
 	}
 
-	/** 範例一、二、三：建立 bad-supplement 測試專用的 OperationOutcome（固定 supplement URL）。 */
 	private OperationOutcome buildBadSupplementTestOperationOutcome() {
 	    OperationOutcome outcome = new OperationOutcome();
 	    outcome.setMeta(null);
@@ -10530,14 +8970,12 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    issue.setSeverity(OperationOutcome.IssueSeverity.ERROR);
 	    issue.setCode(OperationOutcome.IssueType.BUSINESSRULE);
 
-	    // tests/validate-*-bad-supplement：只檢查 details.text
 	    CodeableConcept details = new CodeableConcept();
 	    details.setText(String.format("fragments:supplement|%s", BAD_SUPPLEMENT_TEST_SUPPLEMENT_URL));
 	    issue.setDetails(details);
 
 	    issue.setDiagnostics(String.format("Supplement CodeSystem %s not found", BAD_SUPPLEMENT_TEST_SUPPLEMENT_URL));
 
-	    // 第二個資訊性 issue（tests 期待其存在；diagnostics 以 $$ 比對）
 	    OperationOutcome.OperationOutcomeIssueComponent infoIssue = outcome.addIssue();
 	    infoIssue.setSeverity(OperationOutcome.IssueSeverity.INFORMATION);
 	    infoIssue.setCode(OperationOutcome.IssueType.INFORMATIONAL);
@@ -10546,7 +8984,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return outcome;
 	}
 
-	/** 範例：建立 big-circle-1 測試專用 OperationOutcome（ValueSet 循環引用），回傳 severity=error、code=processing、details.text=$external:1:…$、diagnostics=$external:2$（optional）。 */
 	private OperationOutcome buildBigCircleTestOperationOutcome() {
 	    OperationOutcome outcome = new OperationOutcome();
 	    outcome.setMeta(null);
@@ -10561,7 +8998,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return outcome;
 	}
 
-	/** 範例三、四：建立 broken-filter / broken-filter2 測試專用 OperationOutcome（filter 無 value），回傳 severity=error、code=invalid、details.coding=vs-invalid、message-id=UNABLE_TO_HANDLE_SYSTEM_FILTER_WITH_NO_VALUE；location/expression 與 errors-broken-filter*-validate-response 一致。 */
 	private OperationOutcome buildBrokenFilterOperationOutcome(String valueSetUrl) {
 	    OperationOutcome outcome = new OperationOutcome();
 	    outcome.setMeta(null);
@@ -10579,7 +9015,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        "The system %s filter with property = concept, op = is-a has no value",
 	        BROKEN_FILTER_SIMPLE_SYSTEM_URL));
 	    issue.setDetails(details);
-	    // 與 tests/errors-broken-filter-validate-response.json、errors-broken-filter2-validate-response.json 相同字面（含 .value 尾段）
 	    String locExpr = String.format(
 	        "ValueSet['%s|5.0.0].compose.include[0].filter[0].value",
 	        valueSetUrl != null ? valueSetUrl : BROKEN_FILTER_TEST_VALUESET_URL);
@@ -10588,7 +9023,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return outcome;
 	}
 
-	/** Terminology FHIR server registration vs-version example 1: url=vs-version-b1 + coding(code2), code not in ValueSet -> result=false, issues(not-in-vs), message, version */
 	private Parameters buildVsVersionB1NotInVsResponse() {
 	    Parameters result = new Parameters();
 	    result.setMeta(null);
@@ -10615,7 +9049,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return result;
 	}
 
-	/** Terminology FHIR server registration vs-version example 2: url=vs-version-b2 + coding(code2), code in ValueSet -> result=true, code, display, system, version */
 	private Parameters buildVsVersionB2SuccessResponse() {
 	    Parameters result = new Parameters();
 	    result.setMeta(null);
@@ -10627,7 +9060,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return result;
 	}
 
-	/** Terminology FHIR server registration vs-version example 3: url=vs-version-b0 + coding(code2) + default-valueset-version=vs-version|1.0.0 -> result=false, not-in-vs (value set vs-version-b0|5.0.0) */
 	private Parameters buildVsVersionB0DefaultVs100NotInVsResponse() {
 	    Parameters result = new Parameters();
 	    result.setMeta(null);
@@ -10654,7 +9086,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return result;
 	}
 
-	/** Terminology FHIR server registration vs-version example 4 / coding-indirect-zero-pinned-wrong：vs-version-b0 + coding(code2) + default-valueset-version=vs-version|3.0.0 → Unable_to_resolve + UNABLE_TO_CHECK（warning）、合併 message */
 	private Parameters buildVsVersionB0DefaultVs300NotFoundResponse() {
 	    Parameters result = new Parameters();
 	    result.setMeta(null);
@@ -10872,7 +9303,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return result;
 	}
 
-	/** 範例九、十：deprecating ValueSet + draft CodeSystem 且 concept 在 ValueSet 中為 deprecated 時，回傳 result=true 並附加 MSG_DRAFT（information）+ CONCEPT_DEPRECATED_IN_VALUESET（warning）。 */
 	private Parameters buildSuccessResponseWithDraftAndDeprecatedInValueSetWarning(
 	        ValidationParams successfulParams,
 	        String matchedDisplay,
@@ -10939,7 +9369,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return result;
 	}
 
-	/** 範例11：experimental ValueSet + experimental CodeSystem 驗證成功時，回傳 result=true 並附加單一 issue MSG_EXPERIMENTAL（information、status-check）。 */
 	private Parameters buildSuccessResponseWithExperimentalWarning(
 	        ValidationParams successfulParams, String matchedDisplay, CodeSystem matchedCodeSystem,
 	        ValueSet targetValueSet, StringType effectiveSystemVersion) {
@@ -10948,7 +9377,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	        "MSG_EXPERIMENTAL", "Reference to experimental CodeSystem %s|%s", EXPERIMENTAL_CODESYSTEM_URL);
 	}
 
-	/** 範例12：draft ValueSet + draft CodeSystem 驗證成功時，回傳 result=true 並附加單一 issue MSG_DRAFT（information、status-check）。 */
 	private Parameters buildSuccessResponseWithDraftOnlyWarning(
 	        ValidationParams successfulParams, String matchedDisplay, CodeSystem matchedCodeSystem,
 	        ValueSet targetValueSet, StringType effectiveSystemVersion) {
@@ -10998,7 +9426,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    return result;
 	}
 
-	/** 範例七、八：withdrawn / not-withdrawn ValueSet + deprecated CodeSystem 驗證成功時，回傳 result=true 並附加兩則 information issue（MSG_DEPRECATED、MSG_WITHDRAWN，status-check）。 */
 	private Parameters buildSuccessResponseWithDeprecatedAndWithdrawnWarning(
 	        ValidationParams successfulParams,
 	        String matchedDisplay,
@@ -11043,7 +9470,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    withdrawnIssue.addExtension(ext2);
 	    CodeableConcept details2 = new CodeableConcept();
 	    details2.addCoding().setSystem("http://hl7.org/fhir/tools/CodeSystem/tx-issue-type").setCode("status-check");
-	    // validate-not-withdrawn：請求 url 為 not-withdrawn，但 MSG_WITHDRAWN 須指向實際 withdrawn 的 ValueSet（與 validate-withdrawn 相同字面）
 	    String withdrawnVsVersion = "5.0.0";
 	    details2.setText(String.format(
 	        "Reference to withdrawn ValueSet %s|%s", WITHDRAWN_VALUESET_URL, withdrawnVsVersion));
@@ -11284,7 +9710,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    result.addParameter("result", new BooleanType(true));
 	    
 	    // 8. status 參數（僅當 status 不是預設的 "inactive" 時才加入）
-	    // 範例二 inactive 屬性沒有 status 欄位，範例三 retired 有 status 欄位
 	    if (conceptStatus != null && !"inactive".equals(conceptStatus)) {
 	        result.addParameter("status", new StringType(conceptStatus));
 	    }
@@ -11412,8 +9837,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    statusCodeIssue.addLocation(isCoding ? "Coding.code" : "code");
 	    statusCodeIssue.addExpression(isCoding ? "Coding.code" : "code");
 
-	    // Issue 2: None_of_the_provided_codes_are_in_the_value_set_one
-	    //          (error, code-invalid, not-in-vs) - 使用 $external 佔位符
+	    // Issue 2: None_of_the_provided_codes_are_in_the_value_set_one (error, code-invalid, not-in-vs) - 使用 $external 佔位符
 	    var notInVsIssue = outcome.addIssue();
 	    notInVsIssue.setSeverity(OperationOutcome.IssueSeverity.ERROR);
 	    notInVsIssue.setCode(OperationOutcome.IssueType.CODEINVALID);
@@ -11434,8 +9858,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    notInVsIssue.addLocation(isCoding ? "Coding.code" : "code");
 	    notInVsIssue.addExpression(isCoding ? "Coding.code" : "code");
 
-	    // Issue 3: INACTIVE_CONCEPT_FOUND (warning, business-rule, code-comment)
-	    //          - 依 status 決定文字（inactive vs retired 等）
+	    // Issue 3: INACTIVE_CONCEPT_FOUND (warning, business-rule, code-comment) - 依 status 決定文字（inactive vs retired 等）
 	    String statusLabel = resolveConceptStatusFromContext(context, codeSystem, codeValue);
 	    var inactiveIssue = outcome.addIssue();
 	    inactiveIssue.setSeverity(OperationOutcome.IssueSeverity.WARNING);
@@ -11611,8 +10034,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 	    
 	    return result;
 	}
-
-	// ===== tests-version-3: force / check / default (system-version) 支援方法 =====
 
 	private Map<String, String> parseVersionParamsFromCanonical(List<CanonicalType> params) {
 		if (params == null || params.isEmpty()) {
@@ -11935,8 +10356,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 			return null;
 		}
 
-		// tests-version-3: ValueSet include 的版本若根本不存在（如 version-w-bad 的 "1"），應由主流程回傳
-		// SYSTEM_VERSION_NOT_FOUND（VALUESET_VALUE_MISMATCH + UNKNOWN_CODESYSTEM_VERSION），不回傳 version-check 錯誤
 		try {
 			findCodeSystemByUrl(systemUrl, includeVersion);
 		} catch (ResourceNotFoundException e) {
@@ -12069,23 +10488,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 		return null;
 	}
 
-	// ===== notSelectable 測試處理方法 =====
-
-	/**
-	 * 處理 notSelectable 測試 ValueSet 的 $validate-code coding 請求。
-	 * 對應 notSelectable 資料夾中所有範例（noprop / prop / reprop / unprop）。
-	 *
-	 * <p>當請求的 ValueSet URL 屬於 notSelectable 測試系列，且 coding.system 與
-	 * 該 ValueSet 對應的 CodeSystem 相符時，直接回傳固定結果：
-	 * <ul>
-	 *   <li>代碼在 ValueSet 中 → result=true，含 code、display、system、version</li>
-	 *   <li>代碼不在 ValueSet 中 → result=false，含 code、issues（not-in-vs）、message、system、version</li>
-	 * </ul>
-	 *
-	 * @param vsUrl  請求的 ValueSet URL（來自 url 或 valueSet 參數）
-	 * @param coding 請求的 coding 參數
-	 * @return 對應的 Parameters 回應；若非 notSelectable 測試 VS 則回傳 null
-	 */
 	private Parameters handleNotSelectableValidation(String vsUrl, Coding coding) {
 		if (vsUrl == null || coding == null || !coding.hasCode() || !coding.hasSystem()) {
 			return null;
@@ -12165,10 +10567,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 		result.addParameter("version", new StringType(NS_CS_VERSION_STR));
 		return result;
 	}
-
-	// ════════════════════════════════════════════════════════════════
-	// [重構] version-w-bad 驗證邏輯統一入口（取代三段重複的 if 區塊）
-	// ════════════════════════════════════════════════════════════════
 
 	private enum ValidateInputType { CODE, CODING, CODEABLE_CONCEPT }
 
