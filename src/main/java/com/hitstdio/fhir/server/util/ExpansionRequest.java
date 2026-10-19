@@ -16,6 +16,7 @@ public class ExpansionRequest {
     
     private final IdType id;
     private final UriType url;
+    private final ValueSet valueSet;
     private final StringType valueSetVersion;
     private final StringType filter;
     private final DateType date;
@@ -48,6 +49,7 @@ public class ExpansionRequest {
     private ExpansionRequest(Builder builder) {
         this.id = builder.id;
         this.url = builder.url;
+        this.valueSet = builder.valueSet;
         this.valueSetVersion = builder.valueSetVersion;
         this.filter = builder.filter;
         this.date = builder.date;
@@ -72,6 +74,22 @@ public class ExpansionRequest {
     // Getters
     public IdType getId() { return id; }
     public UriType getUrl() { return url; }
+
+    public ValueSet getValueSet() {
+        if (valueSet != null) {
+            return valueSet;
+        }
+        if (parameters != null) {
+            for (Parameters.ParametersParameterComponent param : parameters.getParameter()) {
+                if ("valueSet".equals(param.getName()) && param.hasResource()
+                        && param.getResource() instanceof ValueSet) {
+                    return (ValueSet) param.getResource();
+                }
+            }
+        }
+        return null;
+    }
+
     public StringType getValueSetVersion() { return valueSetVersion; }
     public StringType getFilter() { return filter; }
     public DateType getDate() { return date; }
@@ -248,6 +266,7 @@ public class ExpansionRequest {
     public static class Builder {
         private IdType id;
         private UriType url;
+        private ValueSet valueSet;
         private StringType valueSetVersion;
         private StringType filter;
         private DateType date;
@@ -270,6 +289,7 @@ public class ExpansionRequest {
         
         public Builder id(IdType id) { this.id = id; return this; }
         public Builder url(UriType url) { this.url = url; return this; }
+        public Builder valueSet(ValueSet valueSet) { this.valueSet = valueSet; return this; }
         public Builder valueSetVersion(StringType valueSetVersion) { 
             this.valueSetVersion = valueSetVersion; return this; 
         }

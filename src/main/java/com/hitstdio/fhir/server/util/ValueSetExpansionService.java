@@ -244,9 +244,16 @@ public class ValueSetExpansionService {
 			return valueSetDao.read(request.getId(), request.getRequestDetails());
 		}
 
+
 		if (request.getUrl() == null || !request.getUrl().hasValue()) {
+			ValueSet inlineValueSet = request.getValueSet();
+			if (inlineValueSet != null) {
+				return inlineValueSet;
+			}
+
 			throw new InvalidRequestException(
-					"Either a resource ID or the 'url' parameter must be provided for the $expand operation.");
+					"Either a resource ID, the 'url' parameter, or an inline 'valueSet' parameter "
+							+ "must be provided for the $expand operation.");
 		}
 
 		String url = request.getUrl().getValue();

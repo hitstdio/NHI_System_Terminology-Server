@@ -266,6 +266,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
     @Operation(name = "$expand", idempotent = true)
     public ValueSet expandValueSetTypeLevel(
             @OperationParam(name = "url") UriType theUrl,
+            @OperationParam(name = "valueSet") ValueSet theValueSet,
             @OperationParam(name = "valueSetVersion") StringType theValueSetVersion,
             @OperationParam(name = "filter") StringType theFilter,
             @OperationParam(name = "date") DateType theDate,
@@ -288,6 +289,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 
         ExpansionRequest request = ExpansionRequest.builder()
                 .url(theUrl)
+                .valueSet(theValueSet)
                 .valueSetVersion(theValueSetVersion)
                 .filter(theFilter)
                 .date(theDate)
@@ -319,6 +321,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
     public ValueSet expandValueSetInstanceLevel(
             @IdParam IdType theId,
             @OperationParam(name = "url") UriType theUrl,
+            @OperationParam(name = "valueSet") ValueSet theValueSet,
             @OperationParam(name = "valueSetVersion") StringType theValueSetVersion,
             @OperationParam(name = "filter") StringType theFilter,
             @OperationParam(name = "date") DateType theDate,
@@ -342,6 +345,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         ExpansionRequest request = ExpansionRequest.builder()
                 .id(theId)
                 .url(theUrl)
+                .valueSet(theValueSet)
                 .valueSetVersion(theValueSetVersion)
                 .filter(theFilter)
                 .date(theDate)
@@ -1459,7 +1463,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             @OperationParam(name = "systemVersion") StringType systemVersion,
             @OperationParam(name = "systemVersion") CodeType systemVersionCode,
             @OperationParam(name = "url") UriType url,
-            @OperationParam(name = "valueSet") CanonicalType valueSet,
+            @OperationParam(name = "valueSet") ValueSet valueSet,
             @OperationParam(name = "version") StringType version,
             @OperationParam(name = "valueSetVersion") StringType valueSetVersionParam,
             @OperationParam(name = "display") StringType display,
@@ -1508,7 +1512,8 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 resolvedSystem = new UriType(systemFromVersionParam);
             }
             UriType resolvedUrl = url;
-            UriType resolvedValueSetUrl = valueSet != null ? new UriType(valueSet.getValue()) : null;
+            UriType resolvedValueSetUrl = (valueSet != null && valueSet.hasUrl())
+                    ? new UriType(valueSet.getUrl()) : null;
             StringType resolvedSystemVersion = systemVersion;
             if ((resolvedSystemVersion == null || !resolvedSystemVersion.hasValue())
                     && systemVersionCode != null && systemVersionCode.hasValue()) {
@@ -3723,8 +3728,14 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     targetValueSet = findValueSetByUrl(resolvedUrl.getValue(),
                         requestedValueSetVersion != null ? requestedValueSetVersion.getValue() : null);
                 } else if (resolvedValueSetUrl != null) {
-                    targetValueSet = findValueSetByUrl(resolvedValueSetUrl.getValue(), 
-                        requestedValueSetVersion != null ? requestedValueSetVersion.getValue() : null);
+                    try {
+                        targetValueSet = findValueSetByUrl(resolvedValueSetUrl.getValue(),
+                            requestedValueSetVersion != null ? requestedValueSetVersion.getValue() : null);
+                    } catch (ResourceNotFoundException e) {
+                        targetValueSet = valueSet;
+                    }
+                } else if (valueSet != null) {
+                    targetValueSet = valueSet;
                 } else {
                 	// 在拋出缺少 ValueSet 錯誤前，先檢查 system 是否為 supplement
                     // 這樣即使沒有提供 ValueSet，supplement 錯誤也能被正確回傳
@@ -3831,7 +3842,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             List<AbstractMap.SimpleEntry<ValidationParams, CodeSystemVersionNotFoundException>> versionNotFoundErrors = new ArrayList<>();
             
             for (var params : paramsList) {
-            	validateValidationParams(params.code(), params.system(), resourceId, resolvedUrl, resolvedValueSetUrl);
+            	validateValidationParams(params.code(), params.system(), resourceId, resolvedUrl, resolvedValueSetUrl, valueSet);
 
                 try {
                     StringType effectiveSystemVersion = determineEffectiveSystemVersion(
@@ -4614,7 +4625,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 String valueSetUrlForError = extractValueSetUrlFromException(
             		    e,
             		    url != null ? url.getValue() : null,
-            		    valueSet != null ? valueSet.getValue() : null
+            		    (valueSet != null && valueSet.hasUrl()) ? valueSet.getUrl() : null
             		);
                 OperationOutcome outcome;
                 String versionForError = (version != null && version.hasValue()) ? version.getValue() :
@@ -4662,14 +4673,17 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                     } else {
                      
                         UriType resolvedUrl = url;
-                        UriType resolvedValueSetUrl = valueSet != null ? new UriType(valueSet.getValue()) : null;
+                        UriType resolvedValueSetUrl = (valueSet != null && valueSet.hasUrl())
+                                ? new UriType(valueSet.getUrl()) : null;
 
                         if (resolvedUrl != null) {
-                            targetValueSet = findValueSetByUrl(resolvedUrl.getValue(), 
+                            targetValueSet = findValueSetByUrl(resolvedUrl.getValue(),
                                 vsVersion != null ? vsVersion.getValue() : null);
                         } else if (resolvedValueSetUrl != null) {
-                            targetValueSet = findValueSetByUrl(resolvedValueSetUrl.getValue(), 
+                            targetValueSet = findValueSetByUrl(resolvedValueSetUrl.getValue(),
                                 vsVersion != null ? vsVersion.getValue() : null);
+                        } else if (valueSet != null) {
+                            targetValueSet = valueSet;
                         }
                     }
                 } catch (Exception ex) {
@@ -7321,12 +7335,12 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
     }
     
     // 驗證參數方法
-    private void validateValidationParams(CodeType code, UriType system, IdType resourceId, 
-                                        UriType url, UriType valueSetUrl) {
+    private void validateValidationParams(CodeType code, UriType system, IdType resourceId,
+                                        UriType url, UriType valueSetUrl, ValueSet inlineValueSet) {
         if (code == null || code.isEmpty()) {
             throw new InvalidRequestException("Parameter 'code' is required");
         }
-        if (resourceId == null && url == null && valueSetUrl == null) {
+        if (resourceId == null && url == null && valueSetUrl == null && inlineValueSet == null) {
             throw new InvalidRequestException("Either resource ID, 'url', or 'valueSet' parameter must be provided");
         }
     }

@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Import;
 import com.hitstdio.fhir.server.interceptor.ValidateCodeNarrativeSuppressionInterceptor;
 import com.hitstdio.fhir.server.provider.TerminologyCapabilitiesResourceProvider;
 import com.hitstdio.fhir.server.r4.TestServerR4AppCtx;
+import com.hitstdio.fhir.server.r4.VersionsProvider;
 
 import ca.uhn.fhir.batch2.jobs.config.Batch2JobsConfig;
 import ca.uhn.fhir.context.FhirContext;
@@ -90,6 +91,8 @@ public final class ExampleRestfulServlet extends RestfulServer {
 		
 		/*KafkaLoggingInterceptor kafkaInterceptor = new KafkaLoggingInterceptor();
 		registerInterceptor(kafkaInterceptor);*/
+		
+		registerProvider(new VersionsProvider());
 	    
 		LoggingInterceptor loggingInterceptor = new LoggingInterceptor();
 		loggingInterceptor.setLoggerName("fhir.access");
