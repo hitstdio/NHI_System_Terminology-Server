@@ -381,18 +381,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             Map<String, String> forceSysVersionMap = parseVersionParamsFromCanonical(theForceSystemVersion);
             
             UriType resolvedSystem = system != null ? new UriType(system.getValue()) : null;
-            if ((resolvedSystem == null || resolvedSystem.isEmpty()) && !sysVersionDefaultMap.isEmpty()) {
-                String systemFromVersionParam = sysVersionDefaultMap.keySet().iterator().next();
-                resolvedSystem = new UriType(systemFromVersionParam);
-            }
-            if ((resolvedSystem == null || resolvedSystem.isEmpty()) && !forceSysVersionMap.isEmpty()) {
-                String systemFromVersionParam = forceSysVersionMap.keySet().iterator().next();
-                resolvedSystem = new UriType(systemFromVersionParam);
-            }
-            if ((resolvedSystem == null || resolvedSystem.isEmpty()) && !checkSysVersionMap.isEmpty()) {
-                String systemFromVersionParam = checkSysVersionMap.keySet().iterator().next();
-                resolvedSystem = new UriType(systemFromVersionParam);
-            }
             UriType resolvedUrl = url;
             UriType resolvedValueSetUrl = (valueSet != null && valueSet.hasUrl())
                     ? new UriType(valueSet.getUrl()) : null;
@@ -448,7 +436,22 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
                 }
             }
 
-            if (coding != null && coding.hasVersion() && 
+            // inferSystem 無法決定 system 時，才退而使用 *-system-version 參數中的 system
+            // （validator 會固定帶入 SNOMED 的 system-version，不可優先於 inferSystem）
+            if ((resolvedSystem == null || resolvedSystem.isEmpty()) && !sysVersionDefaultMap.isEmpty()) {
+                String systemFromVersionParam = sysVersionDefaultMap.keySet().iterator().next();
+                resolvedSystem = new UriType(systemFromVersionParam);
+            }
+            if ((resolvedSystem == null || resolvedSystem.isEmpty()) && !forceSysVersionMap.isEmpty()) {
+                String systemFromVersionParam = forceSysVersionMap.keySet().iterator().next();
+                resolvedSystem = new UriType(systemFromVersionParam);
+            }
+            if ((resolvedSystem == null || resolvedSystem.isEmpty()) && !checkSysVersionMap.isEmpty()) {
+                String systemFromVersionParam = checkSysVersionMap.keySet().iterator().next();
+                resolvedSystem = new UriType(systemFromVersionParam);
+            }
+
+            if (coding != null && coding.hasVersion() &&
                 (resolvedSystemVersion == null || resolvedSystemVersion.isEmpty())) {
                 resolvedSystemVersion = new StringType(coding.getVersion());
             }
