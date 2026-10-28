@@ -21,7 +21,6 @@ import ca.uhn.fhir.jpa.api.dao.IFhirResourceDao;
 import ca.uhn.fhir.jpa.searchparam.SearchParameterMap;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
-import ca.uhn.fhir.util.VersionUtil;
 
 /**
  * Builds the TerminologyCapabilities (FHIR R4) returned by GET /metadata?mode=terminology.
@@ -34,7 +33,8 @@ public class TerminologyCapabilitiesResourceProvider extends BaseResourceProvide
 	private static final List<String> EXPAND_PARAMETERS = Arrays.asList(
 			"activeOnly", "check-system-version", "count", "date", "designation", "displayLanguage",
 			"exclude-system", "excludeNested", "excludeNotForUI", "filter", "force-system-version",
-			"includeDefinition", "includeDesignations", "offset", "property", "system-version");
+			"includeDefinition", "includeDesignations", "offset", "property", "system-version",
+			"tx-resource");
 
 	private final IFhirResourceDao<CodeSystem> codeSystemDao;
 
@@ -46,19 +46,14 @@ public class TerminologyCapabilitiesResourceProvider extends BaseResourceProvide
 	public TerminologyCapabilities getTerminologyCapabilities(RequestDetails requestDetails) {
 		TerminologyCapabilities tc = new TerminologyCapabilities();
 
-		tc.setUrl("https://ts.caty.hdata.tw/metadata?mode=terminology");
 		tc.setVersion("1.0.0");
 		tc.setName("TerminologyCapabilities");
 		tc.setTitle("Terminology Capabilities Statement");
 		tc.setStatus(Enumerations.PublicationStatus.ACTIVE);
 		tc.setDate(new Date());
-		tc.setPublisher("KYHealth");
 
 		// /metadata describes this running server, so kind = instance (tcp-1: implementation required)
 		tc.setKind(CapabilityStatementKind.INSTANCE);
-		tc.getSoftware()
-				.setName("HAPI FHIR Server")
-				.setVersion(VersionUtil.getVersion());
 		String serverBase = requestDetails.getFhirServerBase();
 		tc.getImplementation()
 				.setDescription("FHIR Terminology Server running at " + serverBase)
@@ -103,8 +98,7 @@ public class TerminologyCapabilitiesResourceProvider extends BaseResourceProvide
 
 		for (Map.Entry<String, List<String>> entry : versionsByUrl.entrySet()) {
 			TerminologyCapabilitiesCodeSystemComponent csComponent = tc.addCodeSystem()
-					.setUri(entry.getKey())
-					.setSubsumption(false); // $subsumes is not implemented
+					.setUri(entry.getKey());
 
 			List<String> versions = entry.getValue();
 			if (versions.isEmpty()) {
