@@ -30,7 +30,9 @@ import ca.uhn.fhir.rest.api.EncodingEnum;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.RestfulServer;
+import ca.uhn.fhir.rest.server.RestfulServerUtils;
 import ca.uhn.fhir.rest.server.exceptions.AuthenticationException;
+import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
 import ca.uhn.fhir.rest.server.interceptor.InterceptorAdapter;
 import ca.uhn.fhir.rest.server.interceptor.LoggingInterceptor;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
@@ -45,6 +47,7 @@ import jakarta.servlet.http.HttpServletResponse;
 })
 public final class ExampleRestfulServlet extends RestfulServer {	
 	private static final long serialVersionUID = 1L;
+	private static final org.slf4j.Logger ourLog = org.slf4j.LoggerFactory.getLogger(ExampleRestfulServlet.class);
 	public static ValidationSupportChain validationSupportChain;
 	
 	public ExampleRestfulServlet() {
@@ -72,9 +75,17 @@ public final class ExampleRestfulServlet extends RestfulServer {
 	    registerInterceptor(interceptor);
 		
 		
-        TerminologyCapabilitiesResourceProvider terminologyProvider = new TerminologyCapabilitiesResourceProvider(appCtx.getBean(DaoRegistry.class));
-        providers.add(terminologyProvider);
-		
+        // 沿用 TestServerR4AppCtx 已註冊的實例，避免同一 resource type 註冊兩個 provider
+        TerminologyCapabilitiesResourceProvider terminologyProvider = providers.stream()
+                .filter(TerminologyCapabilitiesResourceProvider.class::isInstance)
+                .map(TerminologyCapabilitiesResourceProvider.class::cast)
+                .findFirst()
+                .orElseGet(() -> {
+                    TerminologyCapabilitiesResourceProvider p = new TerminologyCapabilitiesResourceProvider(appCtx.getBean(DaoRegistry.class));
+                    providers.add(p);
+                    return p;
+                });
+
 		setResourceProviders(providers);
 		registerProviders(plainProviders);
 		setDefaultResponseEncoding(EncodingEnum.JSON);		
@@ -127,38 +138,31 @@ public final class ExampleRestfulServlet extends RestfulServer {
                 modeValue = modeParam[0];
             }
             
-            if ("metadata".equals(requestPath) && modeValue != null && "terminology".equals(modeValue)) {
+            if ("metadata".equals(requestPath) && "terminology".equals(modeValue)) {
+                String responseContent;
+                EncodingEnum encoding;
                 try {
+                    TerminologyCapabilities terminologyCapabilities = terminologyProvider.getTerminologyCapabilities(theRequestDetails);
 
-                    TerminologyCapabilities terminologyCapabilities = terminologyProvider.getTerminologyCapabilities("terminology", theRequestDetails);
-                    
-                    if (terminologyCapabilities != null) {
-                        IParser parser;
-                        if (theRequestDetails.getParameters().containsKey("_format")) {
-                            String[] formatParam = theRequestDetails.getParameters().get("_format");
-                            if (formatParam != null && formatParam.length > 0 && formatParam[0].contains("xml")) {
-                                parser = getFhirContext().newXmlParser();
-                            } else {
-                                parser = getFhirContext().newJsonParser();
-                            }
-                        } else {
-                            parser = getFhirContext().newJsonParser();
-                        }
-                        
-                        parser.setPrettyPrint(true);
-                        String responseContent = parser.encodeResourceToString(terminologyCapabilities);
-                        
-                        theResponse.setStatus(200);
-	                    theResponse.setContentType("application/fhir+json; charset=UTF-8");
-                        theResponse.getWriter().write(responseContent);
-                        theResponse.getWriter().close();
-                        
-
-                        return false;
-                    }
+                    // 依 _format / Accept 決定回應格式，預設 JSON
+                    encoding = RestfulServerUtils.determineResponseEncodingWithDefault(theRequestDetails).getEncoding();
+                    IParser parser = encoding.newParser(getFhirContext());
+                    parser.setPrettyPrint(true);
+                    responseContent = parser.encodeResourceToString(terminologyCapabilities);
                 } catch (Exception e) {
-
+                    ourLog.error("Failed to build TerminologyCapabilities", e);
+                    throw new InternalErrorException("Failed to build TerminologyCapabilities: " + e.getMessage(), e);
                 }
+
+                try {
+                    theResponse.setStatus(200);
+                    theResponse.setContentType(encoding.getResourceContentTypeNonLegacy() + "; charset=UTF-8");
+                    theResponse.getWriter().write(responseContent);
+                    theResponse.getWriter().close();
+                } catch (IOException e) {
+                    ourLog.error("Failed to write TerminologyCapabilities response", e);
+                }
+                return false;
             }
 
             return true;

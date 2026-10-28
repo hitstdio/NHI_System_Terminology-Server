@@ -1574,15 +1574,14 @@ public class CodeSystemResourceProvider extends BaseResourceProvider<CodeSystem>
     
     // 主要修改點 3: 新增支援多版本查詢的方法
     private List<CodeSystem> findAllVersionsOfCodeSystem(String systemUrl) {
-        var searchParams = new SearchParameterMap();
+        var searchParams = SearchParameterMap.newSynchronous();
         searchParams.add(CodeSystem.SP_URL, new UriParam(systemUrl));
         // 不指定版本，獲取所有版本
-        
+
         var searchResult = dao.search(searchParams, systemRequestDetails);
         List<CodeSystem> codeSystems = new ArrayList<>();
-        
-        for (int i = 0; i < searchResult.size(); i++) {
-            var resource = searchResult.getResources(i, 1).get(0);
+
+        for (var resource : searchResult.getAllResources()) {
             if (resource instanceof CodeSystem) {
                 codeSystems.add((CodeSystem) resource);
             }

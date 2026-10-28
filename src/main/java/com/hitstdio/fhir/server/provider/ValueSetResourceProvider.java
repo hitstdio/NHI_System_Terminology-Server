@@ -26,7 +26,6 @@ import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jena.sparql.function.library.leviathan.log;
 import org.hl7.fhir.instance.model.api.IBase;
 import org.hl7.fhir.instance.model.api.IBaseDatatype;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -42,7 +41,6 @@ import org.hl7.fhir.r4.model.ValueSet.ConceptSetFilterComponent;
 import org.hl7.fhir.r4.model.ValueSet.ValueSetComposeComponent;
 import org.hl7.fhir.r4.model.ValueSet.ValueSetExpansionComponent;
 import org.hl7.fhir.r4.model.ValueSet.ValueSetExpansionContainsComponent;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.hitstdio.fhir.server.util.ExpansionRequest;
 import com.hitstdio.fhir.server.util.OperationOutcomeHelper;
@@ -66,16 +64,14 @@ import java.util.stream.Collectors;
 
 /**
  * HAPI FHIR Resource Provider for the ValueSet resource.
- * Implements the $expand operation for expanding value sets.
+ * Implements the $expand, $validate-code and $batch-validate operations.
  */
 public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSet> {
 
-	@Autowired
-	private IFhirResourceDao<ValueSet> myValueSetDao;
+	private final IFhirResourceDao<ValueSet> myValueSetDao;
 
-	@Autowired 
-	private IFhirResourceDao<CodeSystem> myCodeSystemDao;
-	
+	private final IFhirResourceDao<CodeSystem> myCodeSystemDao;
+
     private final ValueSetExpansionService expansionService;
     
     private final RequestDetails systemRequestDetails;
@@ -3326,7 +3322,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
     private StringType determineEffectiveSystemVersion(ValidationParams params, StringType resolvedSystemVersion) {
         // 1. 優先使用 coding 中的 version
         if (params.originalCoding() != null && params.originalCoding().hasVersion()) {
-        	String version = params.originalCoding().getVersion();
             return new StringType(params.originalCoding().getVersion());
         }
         
@@ -3334,8 +3329,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         if (params.originalCodeableConcept() != null) {
             for (Coding c : params.originalCodeableConcept().getCoding()) {
                 if (c.hasVersion()) {
-                	String version = c.getVersion();
-                    
                     return new StringType(c.getVersion());
                 }
             }
@@ -3397,8 +3390,8 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         var searchResult = myCodeSystemDao.search(searchParams, new SystemRequestDetails());
 
         List<CodeSystem> codeSystems = new ArrayList<>();
-        for (int i = 0; i < searchResult.size(); i++) {
-            codeSystems.add((CodeSystem) searchResult.getResources(i, i+1).get(0));
+        for (var resource : searchResult.getAllResources()) {
+            codeSystems.add((CodeSystem) resource);
         }
 
         return codeSystems;
@@ -4086,14 +4079,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 				if (isFragment && lastErrorResult != null &&
 			            (lastErrorResult.errorType() == ValidationErrorType.CODE_NOT_IN_VALUESET ||
 			             lastErrorResult.errorType() == ValidationErrorType.INVALID_CODE)) {
-					
-					System.out.println("=== FRAGMENT DEBUG ===");
-				    System.out.println("isFragment: " + isFragment);
-				    System.out.println("lastErrorResult type: " + lastErrorResult.errorType());
-				    System.out.println("system param: " + (system != null ? system.getValue() : "null"));
-				    for (ConceptSetComponent include : compose.getInclude()) {
-				        System.out.println("include.system: " + include.getSystem());
-				    }
 
 			            // 找到對應的 CodeSystem，判斷代碼是否存在
 			            for (ConceptSetComponent include : compose.getInclude()) {
@@ -5044,16 +5029,6 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
 
         // 檢查所有 filter 條件
         for (ConceptSetFilterComponent filter : filters) {
-        	boolean filterResult = evaluateFilter(filter, concept, codeSystem);
-            System.out.println("filter property=" + filter.getProperty() + 
-                               " op=" + filter.getOp().toCode() +
-                               " value=" + filter.getValue() +
-                               " result=" + filterResult);
-            if (!filterResult) {
-                Boolean isInactiveConcept = isConceptInactive(concept);
-                System.out.println("filter EXCLUDED, isInactive=" + isInactiveConcept);
-            }
-        	
         	if (!evaluateFilter(filter, concept, codeSystem)) {
         	    Boolean isInactiveConcept = isConceptInactive(concept);
         	    return new ValidationResult(false, concept, codeSystem, concept.getDisplay(), 
@@ -5893,18 +5868,16 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
             }
             
             // 查詢所有版本以提供更好的錯誤信息
-            var allVersionsParams = new SearchParameterMap();
+            var allVersionsParams = SearchParameterMap.newSynchronous();
             allVersionsParams.add(CodeSystem.SP_URL, new UriParam(url));
             var allVersionsResult = myCodeSystemDao.search(allVersionsParams, new SystemRequestDetails());
-            
+
             // 在這裡聲明並初始化 availableVersions
             List<String> availableVersions = new ArrayList<>();
-            if (allVersionsResult.size() > 0) {
-                for (int i = 0; i < allVersionsResult.size(); i++) {
-                    CodeSystem cs = (CodeSystem) allVersionsResult.getResources(i, i+1).get(0);
-                    if (cs.hasVersion()) {
-                        availableVersions.add(cs.getVersion());
-                    }
+            for (var resource : allVersionsResult.getAllResources()) {
+                CodeSystem cs = (CodeSystem) resource;
+                if (cs.hasVersion()) {
+                    availableVersions.add(cs.getVersion());
                 }
             }
             
@@ -6575,7 +6548,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         return !systemUrl.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*");
     }  
     
-    public class CodeSystemVersionNotFoundException extends ResourceNotFoundException {
+    public static class CodeSystemVersionNotFoundException extends ResourceNotFoundException {
         private String url;
         private String requestedVersion;
         private List<String> availableVersions;
@@ -6884,7 +6857,7 @@ public final class ValueSetResourceProvider extends BaseResourceProvider<ValueSe
         if (!availableVersions.isEmpty()) {
             Collections.sort(availableVersions);
         }
-        // tests-version-3/check: coding-v10-vs1wb 註冊預期為逗號無空白格式（依 DB 內該 URL 之 CodeSystem 版本列舉，如 1.0.0,1.2.0）
+        
         boolean useCompactCsvVersions =
             "http://hl7.org/fhir/test/CodeSystem/version".equals(systemUrl)
                 && "1".equals(requestedVersion);
