@@ -6,6 +6,9 @@ fhir.name=NHI FHIR Terminology Server
 
 hapi.fhir.allow-patch=true
 
+# CodeSystem 代碼數超過此值時，GET / 搜尋回應改以 content = not-present 呈現（資料庫仍保存完整代碼）
+terminology.codesystem.not-present-threshold=1000
+
 # Oracle 21c — 使用 docker-compose 中 oracle service 的 hostname
 db.url=jdbc:oracle:thin:@oracle:1521/XEPDB1
 db.driver-class-name=oracle.jdbc.OracleDriver

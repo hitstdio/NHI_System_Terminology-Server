@@ -13,6 +13,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Import;
 
 //import com.hitstdio.fhir.server.interceptor.KafkaLoggingInterceptor;
+import com.hitstdio.fhir.server.interceptor.CodeSystemContentModeInterceptor;
 import com.hitstdio.fhir.server.interceptor.ValidateCodeNarrativeSuppressionInterceptor;
 import com.hitstdio.fhir.server.provider.TerminologyCapabilitiesResourceProvider;
 import com.hitstdio.fhir.server.r4.TestServerR4AppCtx;
@@ -49,6 +50,8 @@ public final class ExampleRestfulServlet extends RestfulServer {
 	private static final long serialVersionUID = 1L;
 	private static final org.slf4j.Logger ourLog = org.slf4j.LoggerFactory.getLogger(ExampleRestfulServlet.class);
 	public static ValidationSupportChain validationSupportChain;
+	private static final String NOT_PRESENT_THRESHOLD_PROPERTY = "terminology.codesystem.not-present-threshold";
+	private static final int DEFAULT_NOT_PRESENT_THRESHOLD = 1000;
 	
 	public ExampleRestfulServlet() {
 		super(FhirContext.forR4Cached()); 
@@ -95,6 +98,12 @@ public final class ExampleRestfulServlet extends RestfulServer {
 		// 禁用 NarrativeGenerator 以避免自動生成 narrative text
 		// INarrativeGenerator narrativeGen = new DefaultThymeleafNarrativeGenerator();
 		// getFhirContext().setNarrativeGenerator(narrativeGen);
+
+		// 代碼數超過門檻的 CodeSystem，查詢回應改為 content = not-present（須在 ResponseHighlighterInterceptor 之前執行）
+		int notPresentThreshold = appCtx.getEnvironment().getProperty(
+				NOT_PRESENT_THRESHOLD_PROPERTY, Integer.class, DEFAULT_NOT_PRESENT_THRESHOLD);
+		ourLog.info("CodeSystem not-present threshold: {} concepts", notPresentThreshold);
+		registerInterceptor(new CodeSystemContentModeInterceptor(notPresentThreshold));
 
 		registerInterceptor(new ResponseHighlighterInterceptor());
 		

@@ -31,6 +31,8 @@ import org.hl7.fhir.utilities.xhtml.XhtmlNode;
 import org.hl7.fhir.utilities.xhtml.XhtmlParser;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import com.hitstdio.fhir.server.interceptor.CodeSystemContentModeInterceptor;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -119,6 +121,53 @@ public class CodeSystemResourceProvider extends BaseResourceProvider<CodeSystem>
     }
 
     
+    @Override
+    public MethodOutcome createResource(Resource theResource, RequestDetails requestDetails) {
+        checkUploadedCodeSystem(theResource);
+        return super.createResource(theResource, requestDetails);
+    }
+
+    @Override
+    public MethodOutcome updateResource(IdType theId, Resource theResource, RequestDetails requestDetails) {
+        checkUploadedCodeSystem(theResource);
+        return super.updateResource(theId, theResource, requestDetails);
+    }
+
+    private void checkUploadedCodeSystem(Resource theResource) {
+        if (!(theResource instanceof CodeSystem codeSystem)) {
+            return;
+        }
+
+        if (codeSystem.getMeta().getTag(CodeSystemContentModeInterceptor.SUBSETTED_SYSTEM,
+                CodeSystemContentModeInterceptor.SUBSETTED_CODE) != null) {
+            throw new UnprocessableEntityException(
+                "CodeSystem is tagged SUBSETTED: it is an incomplete copy returned by the server "
+                + "and cannot be used to create or update a resource. Upload the full CodeSystem "
+                + "with content 'complete'.");
+        }
+
+        if (codeSystem.getContent() == CodeSystem.CodeSystemContentMode.NOTPRESENT) {
+            throw new UnprocessableEntityException(
+                "CodeSystem content 'not-present' is not accepted: this server needs the concepts "
+                + "to support $lookup, $validate-code and $expand. Upload the full CodeSystem with "
+                + "content 'complete'; the server returns it as 'not-present' automatically when it "
+                + "has more concepts than the configured threshold.");
+        }
+
+        if (codeSystem.getContent() == CodeSystem.CodeSystemContentMode.COMPLETE) {
+            int conceptCount = CodeSystemContentModeInterceptor.countConcepts(codeSystem.getConcept());
+            if (conceptCount == 0) {
+                throw new UnprocessableEntityException(
+                    "CodeSystem content is 'complete' but it contains no concepts.");
+            }
+            if (codeSystem.hasCount() && codeSystem.getCount() != conceptCount) {
+                throw new UnprocessableEntityException(String.format(
+                    "CodeSystem count is %d but it contains %d concepts.",
+                    codeSystem.getCount(), conceptCount));
+            }
+        }
+    }
+
     @Patch
     public MethodOutcome patch(
         @IdParam IdType theId,
